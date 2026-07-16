@@ -1,0 +1,200 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap');
+
+:root {
+  /* Warm Dark Palette — feels human, not corporate */
+  --bg-base:        #111318;
+  --bg-surface:     #1a1d24;
+  --bg-raised:      #21252e;
+  --bg-overlay:     rgba(26, 29, 36, 0.92);
+
+  --text-primary:   #e8eaf0;
+  --text-secondary: #8b91a0;
+  --text-muted:     #5a6070;
+  --text-inverse:   #111318;
+
+  /* Warm accents — teal + amber (kidney/medical feel) */
+  --teal:           #2dd4bf;
+  --teal-dim:       rgba(45, 212, 191, 0.12);
+  --teal-border:    rgba(45, 212, 191, 0.25);
+
+  --amber:          #fbbf24;
+  --amber-dim:      rgba(251, 191, 36, 0.12);
+
+  --rose:           #fb7185;
+  --rose-dim:       rgba(251, 113, 133, 0.12);
+
+  --green:          #34d399;
+  --green-dim:      rgba(52, 211, 153, 0.12);
+  --green-border:   rgba(52, 211, 153, 0.25);
+
+  --border:         rgba(255, 255, 255, 0.07);
+  --border-strong:  rgba(255, 255, 255, 0.12);
+
+  --radius-sm:  8px;
+  --radius-md:  14px;
+  --radius-lg:  20px;
+  --radius-xl:  28px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.35);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+  padding-bottom: 84px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* ── Scrollbar ───────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+/* ── Layout ──────────────────────────────── */
+.page { padding: 0 16px 24px; max-width: 680px; margin: 0 auto; }
+
+/* ── Cards ───────────────────────────────── */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+}
+.card-raised {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 18px;
+}
+.card:hover { border-color: var(--border-strong); transition: border-color 0.2s; }
+
+/* ── Section Headers ─────────────────────── */
+.section-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+/* ── Stat Pill ───────────────────────────── */
+.stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--teal-dim);
+  border: 1px solid var(--teal-border);
+  color: var(--teal);
+  border-radius: 100px;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.stat-pill.amber { background: var(--amber-dim); border-color: rgba(251,191,36,0.25); color: var(--amber); }
+.stat-pill.rose  { background: var(--rose-dim);  border-color: rgba(251,113,133,0.25); color: var(--rose); }
+.stat-pill.green { background: var(--green-dim); border-color: var(--green-border); color: var(--green); }
+
+/* ── Inputs ──────────────────────────────── */
+.field-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+.field-input {
+  width: 100%;
+  background: var(--bg-base);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  -webkit-appearance: none;
+}
+.field-input:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(45,212,191,0.15);
+}
+.field-input::placeholder { color: var(--text-muted); }
+
+/* ── Buttons ─────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 7px; font-family: inherit; font-size: 0.9rem; font-weight: 600;
+  border: none; border-radius: var(--radius-sm); cursor: pointer;
+  padding: 12px 20px; transition: all 0.18s ease; width: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-teal {
+  background: var(--teal);
+  color: var(--text-inverse);
+}
+.btn-teal:hover   { filter: brightness(1.08); }
+.btn-teal:active  { transform: scale(0.98); }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-strong);
+}
+.btn-ghost:hover { background: var(--bg-raised); color: var(--text-primary); }
+
+/* ── Bottom Nav ──────────────────────────── */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+  background: rgba(17, 19, 24, 0.95);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: space-around;
+  padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 3px; color: var(--text-muted); text-decoration: none;
+  font-size: 0.7rem; font-weight: 500; padding: 6px 20px;
+  border-radius: var(--radius-sm); transition: color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-item.active { color: var(--teal); }
+.nav-item svg    { width: 22px; height: 22px; stroke-width: 2; }
+
+/* ── Animations ──────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.35s ease forwards; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin { animation: spin 0.9s linear infinite; }
+
+/* ── Page Header ─────────────────────────── */
+.page-header {
+  background: rgba(17, 19, 24, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px;
+  position: sticky; top: 0; z-index: 10;
+  margin: 0 -16px 22px;
+}
+
+/* ── Trend Line (mini sparkline placeholder) ─ */
+.trend-up   { color: var(--green); font-size: 0.75rem; }
+.trend-down { color: var(--rose);  font-size: 0.75rem; }
+.trend-flat { color: var(--amber); font-size: 0.75rem; }
