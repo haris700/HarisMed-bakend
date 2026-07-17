@@ -1,5 +1,5 @@
-import dotenv from 'dotenv';
-dotenv.config({ path: '../server/.env' });
+import process from 'process';
+process.loadEnvFile('server/.env');
 
 const API_KEY = process.env.GEMINI_API_KEY;
 
