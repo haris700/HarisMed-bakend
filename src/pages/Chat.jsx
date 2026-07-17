@@ -127,11 +127,25 @@ export default function Chat() {
           </div>
         ))}
         {loading && (
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexDirection: 'row' }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Bot size={16} />
             </div>
-            <Loader2 size={20} className="spinner" style={{ color: 'var(--text-muted)' }} />
+            <div style={{ 
+              background: 'linear-gradient(135deg, rgba(200,160,255,0.1) 0%, rgba(167,139,250,0.1) 100%)', 
+              padding: '16px 20px', 
+              borderRadius: '16px', 
+              borderBottomLeftRadius: 0,
+              border: '1px solid rgba(167,139,250,0.3)',
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              <div className="typing-indicator">
+                <div className="typing-dot"></div>
+                <div className="typing-dot"></div>
+                <div className="typing-dot"></div>
+              </div>
+            </div>
           </div>
         )}
         <div ref={messagesEndRef} />
