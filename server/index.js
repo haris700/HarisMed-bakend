@@ -35,8 +35,11 @@ CRITICAL RULES:
     if (patientData && patientData.length > 0) {
       patientData.forEach(record => {
         systemPrompt += `\n--- Date: ${record.date} ---\n`;
-        if (record.tests && record.tests.length > 0) {
-          systemPrompt += `Test Types (Node Edges): ${record.tests.join(', ')}\n`;
+        if (record.tests) {
+          const testString = Array.isArray(record.tests) ? record.tests.join(', ') : record.tests;
+          if (testString && testString !== 'To be updated') {
+            systemPrompt += `Test Types (Node Edges): ${testString}\n`;
+          }
         }
         systemPrompt += `Markers:\n`;
         const markers = record.markers || {};
