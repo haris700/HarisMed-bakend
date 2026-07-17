@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { Groq } from 'groq-sdk';
 import dotenv from 'dotenv';
+import { getOntologyContext } from './ontology.js';
 
 dotenv.config();
 
@@ -17,10 +18,32 @@ app.post('/api/chat', async (req, res) => {
   try {
     const { messages, patientData } = req.body;
 
+    // 0. Router Agent: Classify Intent (Multi-Agent Routing)
+    let ontologyText = "";
+    if (messages && messages.length > 0) {
+      const lastUserMessage = messages.slice().reverse().find(m => m.role === 'user')?.content || "";
+      if (lastUserMessage) {
+        const routerPrompt = `Analyze the medical question and classify it into ONE category: RENAL, LIVER, BLOOD, METABOLIC, or GENERAL. Output ONLY valid JSON: {"intent": "CATEGORY"}\nQuestion: ${lastUserMessage}`;
+        try {
+          const routerResponse = await groq.chat.completions.create({
+            model: "llama-3-8b-8192", // Fast, free router model
+            messages: [{ role: "system", content: routerPrompt }],
+            response_format: { type: "json_object" },
+            temperature: 0.1,
+          });
+          const intentData = JSON.parse(routerResponse.choices[0].message.content);
+          console.log("🤖 Router Agent classified intent as:", intentData.intent);
+          ontologyText = getOntologyContext(intentData.intent);
+        } catch (e) {
+          console.error("Router failed, falling back to general:", e);
+        }
+      }
+    }
+
     // 1. Construct the System Prompt (Knowledge Graph context)
     let systemPrompt = `You are "HarisAI", a highly knowledgeable, empathetic, and professional nephrology and dietary assistant for the HarisMed app.
 You are helping a patient manage their health records and diet based on their recent lab results.
-
+${ontologyText}
 CRITICAL RULES:
 1. Always base your dietary and health suggestions strictly on the patient's provided lab data below.
 2. If their Potassium is high (>5.0), strongly advise against high-potassium foods (bananas, tomatoes, potatoes, oranges).

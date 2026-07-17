@@ -8,6 +8,12 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { readFileSync, readdirSync } from 'fs';
 import { join, extname } from 'path';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import dotenv from 'dotenv';
+dotenv.config({ path: '../server/.env' }); // Load keys from server
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "YOUR_GEMINI_KEY_HERE");
+const aiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 // ---- Your Firebase Config ----
 const firebaseConfig = {
@@ -111,26 +117,50 @@ async function uploadAll() {
       const base64Data = fileBuffer.toString('base64');
       const dataUrl = `data:${mimeType};base64,${base64Data}`;
 
+      console.log(`\n  🧠 Analyzing with Gemini 1.5 Flash...`);
+      const prompt = `You are an expert medical data extractor. Extract key biomarkers from this medical report into a strict JSON object.
+Format the JSON exactly like this, substituting the real values found in the document:
+{
+  "test_types": ["Blood Panel", "Urinalysis"],
+  "markers": {
+    "creatinine": { "value": 1.4, "unit": "mg/dL", "reference_range": "0.7-1.2", "flag": "High" }
+  }
+}
+If a value is not found, omit it. Do not include markdown formatting, just raw JSON.`;
+
+      let extractedData = { test_types: ["Unknown"], markers: {} };
+      try {
+        const aiResult = await aiModel.generateContent([
+          { inlineData: { data: base64Data, mimeType } },
+          prompt
+        ]);
+        const text = aiResult.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+        extractedData = JSON.parse(text);
+      } catch (e) {
+        console.log(`  ⚠️  Gemini extraction failed or rate limited, using defaults.`);
+      }
+
+      // Format markers for the RAG Knowledge Graph
+      const formattedMarkers = {};
+      for (const [k, v] of Object.entries(extractedData.markers || {})) {
+        formattedMarkers[k] = `${v.value} ${v.unit || ''} (${v.flag || 'Normal'}) [Ref: ${v.reference_range || 'Unknown'}]`.trim();
+      }
+
       // Save to Firestore (with base64 file embedded)
       await addDoc(collection(db, 'reports'), {
         date,
-        doctor: 'To be updated',
-        tests: 'To be updated',
+        doctor: 'Extracted by HarisAI',
+        tests: extractedData.test_types || ["Unknown"],
         fileName: filename,
         fileData: dataUrl,      // Full base64 file stored here
         mimeType,
         isImage,
         fileSizeKB,
-        markers: {
-          ana:        null,
-          chf:        null,
-          antiChf:    null,
-          creatinine: null,
-        },
+        markers: formattedMarkers, // Strictly normalized RAG data!
         createdAt: serverTimestamp()
       });
 
-      console.log(`✅  ${date}  (${fileSizeKB}KB)`);
+      console.log(`✅  ${date}  (${fileSizeKB}KB) -> Extracted ${Object.keys(formattedMarkers).length} markers`);
       successCount++;
     } catch (err) {
       console.log(`❌  FAILED: ${err.message}`);
