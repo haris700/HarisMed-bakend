@@ -52,8 +52,8 @@ export default function Chat() {
     setLoading(true);
 
     try {
-      // 2. Call our secure Node.js backend running on the Mac
-      const response = await fetch('http://192.168.100.13:3001/api/chat', {
+      // 2. Call our secure Render cloud backend
+      const response = await fetch('https://harismed-bakend.onrender.com/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
