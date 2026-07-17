@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
-import { collection, getDocs } from 'firebase/firestore';
-import { Bot, User, Send, Loader2, Info } from 'lucide-react';
+import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { Bot, User, Send, Loader2, Info, Paperclip } from 'lucide-react';
 
 export default function Chat() {
   const [messages, setMessages] = useState([
@@ -9,8 +9,10 @@ export default function Chat() {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [patientData, setPatientData] = useState([]);
   const messagesEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // 1. Fetch structured health data from Firestore (The RAG Knowledge base)
   useEffect(() => {
@@ -70,6 +72,88 @@ export default function Chat() {
       console.error(err);
       setMessages([...newMessages, { role: 'assistant', content: 'Sorry, I am having trouble connecting to the medical AI server right now.' }]);
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    setLoading(true); // Triggers the typing indicator to show it's working
+    
+    // Add temporary scanning message
+    const scanMessage = { role: 'assistant', content: `Scanning report "${file.name}" with HarisAI... 🧠` };
+    setMessages(prev => [...prev, scanMessage]);
+
+    try {
+      // 1. Convert File to Base64
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onloadend = async () => {
+        const base64Data = reader.result;
+
+        try {
+          // 2. Call Render to extract biomarkers using Gemini 3.5 Flash
+          const response = await fetch('https://harismed-bakend.onrender.com/api/extract', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileData: base64Data,
+              mimeType: file.type
+            })
+          });
+
+          if (!response.ok) throw new Error("Failed to extract data");
+          const extracted = await response.json();
+
+          // 3. Save directly to Firestore Knowledge base
+          await addDoc(collection(db, 'reports'), {
+            date: extracted.date,
+            doctor: 'Extracted by HarisAI',
+            tests: extracted.tests,
+            fileName: file.name,
+            fileData: base64Data, // Save base64 preview for history page
+            mimeType: file.type,
+            isImage: file.type.startsWith('image/'),
+            fileSizeKB: Math.round(file.size / 1024),
+            markers: extracted.markers,
+            createdAt: new Date()
+          });
+
+          // 4. Update local RAG patient context immediately
+          setPatientData(prev => [extracted, ...prev]);
+
+          // Replace the scanning message with success message
+          setMessages(prev => {
+            const filtered = prev.filter(m => !m.content.includes("Scanning report"));
+            return [
+              ...filtered,
+              { 
+                role: 'assistant', 
+                content: `✅ Successfully processed "${file.name}"!\n\nDate: ${extracted.date}\nTest Types: ${extracted.tests.join(', ')}\n\nExtracted Markers:\n${Object.entries(extracted.markers).map(([k, v]) => `- ${k.toUpperCase()}: ${v}`).join('\n')}\n\nI have automatically updated your RAG Knowledge Graph. Ask me anything about this new test!` 
+              }
+            ];
+          });
+        } catch (err) {
+          console.error(err);
+          setMessages(prev => [
+            ...prev.filter(m => !m.content.includes("Scanning report")),
+            { role: 'assistant', content: `❌ Error parsing "${file.name}". Please ensure it is a clear medical PDF or image.` }
+          ]);
+        } finally {
+          setUploading(false);
+          setLoading(false);
+        }
+      };
+    } catch (err) {
+      console.error(err);
+      setMessages(prev => [
+        ...prev.filter(m => !m.content.includes("Scanning report")),
+        { role: 'assistant', content: `❌ Failed to read file locally.` }
+      ]);
+      setUploading(false);
       setLoading(false);
     }
   };
@@ -154,6 +238,35 @@ export default function Chat() {
       {/* Input Area */}
       <div style={{ padding: '20px', background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
         <form onSubmit={handleSend} style={{ display: 'flex', gap: '10px' }}>
+          
+          {/* File Input and Button */}
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+            style={{ display: 'none' }} 
+            accept="image/*,application/pdf"
+          />
+          <button 
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loading || uploading}
+            style={{ 
+              background: 'var(--surface-raised)', 
+              color: 'var(--text-secondary)', 
+              border: '1px solid var(--border-strong)', 
+              width: '44px', 
+              height: '44px', 
+              borderRadius: '50%', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              cursor: loading || uploading ? 'default' : 'pointer',
+              transition: 'background 0.2s'
+            }}>
+            <Paperclip size={18} />
+          </button>
+
           <input 
             type="text" 
             value={input}
@@ -169,13 +282,13 @@ export default function Chat() {
               fontSize: '0.9rem',
               outline: 'none'
             }} 
-            disabled={loading}
+            disabled={loading || uploading}
           />
           <button 
             type="submit" 
-            disabled={!input.trim() || loading}
+            disabled={!input.trim() || loading || uploading}
             style={{ 
-              background: input.trim() && !loading ? 'var(--primary)' : 'var(--border)', 
+              background: input.trim() && !loading && !uploading ? 'var(--primary)' : 'var(--border)', 
               color: 'white', 
               border: 'none', 
               width: '44px', 
@@ -184,7 +297,7 @@ export default function Chat() {
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
-              cursor: input.trim() && !loading ? 'pointer' : 'default',
+              cursor: input.trim() && !loading && !uploading ? 'pointer' : 'default',
               transition: 'background 0.2s'
             }}>
             <Send size={18} />

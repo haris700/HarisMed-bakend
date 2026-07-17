@@ -3,6 +3,7 @@ import cors from 'cors';
 import { Groq } from 'groq-sdk';
 import dotenv from 'dotenv';
 import { getOntologyContext } from './ontology.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 dotenv.config();
 
@@ -12,6 +13,11 @@ app.use(express.json());
 
 // Initialize Groq
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+// Initialize Gemini
+const geminiKey = (process.env.GEMINI_API_KEY || "").replace(/"/g, '');
+const genAI = new GoogleGenerativeAI(geminiKey);
+const aiModel = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
 // The RAG Endpoint
 app.post('/api/chat', async (req, res) => {
@@ -94,6 +100,55 @@ CRITICAL RULES:
   } catch (error) {
     console.error("Groq API Error:", error);
     res.status(500).json({ error: "Failed to fetch response from AI" });
+  }
+});
+
+// Mobile Document Auto-Extraction Endpoint (Gemini 3.5 Flash)
+app.post('/api/extract', async (req, res) => {
+  try {
+    const { fileData, mimeType } = req.body;
+    if (!fileData || !mimeType) {
+      return res.status(400).json({ error: "Missing fileData or mimeType" });
+    }
+
+    // Extract base64 payload from data URL
+    const base64Data = fileData.includes('base64,') 
+      ? fileData.split('base64,')[1] 
+      : fileData;
+
+    const prompt = `You are an expert medical data extractor. Extract the date of the test and key biomarkers from this medical report into a strict JSON object.
+Format the JSON exactly like this:
+{
+  "date": "YYYY-MM-DD",
+  "test_types": ["Blood Panel", "Urinalysis"],
+  "markers": {
+    "creatinine": { "value": 1.4, "unit": "mg/dL", "reference_range": "0.7-1.2", "flag": "High" }
+  }
+}
+If the date is not found, use today's date (${new Date().toISOString().split('T')[0]}). If a value is not found, omit it. Do not include markdown formatting, just raw JSON.`;
+
+    const aiResult = await aiModel.generateContent([
+      { inlineData: { data: base64Data, mimeType } },
+      prompt
+    ]);
+
+    const text = aiResult.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+    const extractedData = JSON.parse(text);
+
+    // Format markers for the RAG Knowledge Graph
+    const formattedMarkers = {};
+    for (const [k, v] of Object.entries(extractedData.markers || {})) {
+      formattedMarkers[k] = `${v.value} ${v.unit || ''} (${v.flag || 'Normal'}) [Ref: ${v.reference_range || 'Unknown'}]`.trim();
+    }
+
+    res.json({
+      date: extractedData.date || new Date().toISOString().split('T')[0],
+      tests: extractedData.test_types || ["Unknown"],
+      markers: formattedMarkers
+    });
+  } catch (error) {
+    console.error("Gemini Extraction Error:", error);
+    res.status(500).json({ error: "Failed to extract data from document" });
   }
 });
 
