@@ -160,68 +160,102 @@ export default function Chat() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingBottom: '70px' }}>
+    <div style={{ paddingBottom: '160px' }}>
       
-      {/* Header */}
-      <div style={{ padding: '20px', background: 'var(--surface)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div style={{ background: 'var(--primary)', color: 'white', padding: '8px', borderRadius: '10px' }}>
-          <Bot size={24} />
+      {/* 1. Header (Sticky) */}
+      <div className="page-header" style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        borderBottom: '1px solid var(--border)',
+        padding: '14px 16px',
+        background: 'rgba(9, 13, 22, 0.85)',
+        backdropFilter: 'blur(20px)',
+        position: 'sticky',
+        top: 0,
+        zIndex: 10,
+        margin: '0 -16px 20px'
+      }}>
+        <div style={{ background: 'var(--primary-dim)', border: '1px solid var(--primary-border)', borderRadius: '10px', padding: '8px' }}>
+          <Bot size={20} color="var(--primary)" />
         </div>
         <div>
-          <h2 style={{ fontSize: '1.2rem', margin: 0, fontWeight: 700 }}>HarisAI Assistant</h2>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>Clinical context active ✨</p>
+          <h1 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>HarisAI Assistant</h1>
+          <p style={{ fontSize: '0.72rem', color: 'var(--teal)', fontWeight: 600 }}>Clinical context active ✨</p>
         </div>
       </div>
 
-      {/* Privacy Warning */}
-      <div style={{ background: 'rgba(249,115,22,0.1)', padding: '10px 20px', display: 'flex', gap: '8px', alignItems: 'center', fontSize: '0.75rem', color: '#f97316' }}>
-        <Info size={14} />
+      <div style={{
+        background: 'rgba(251,191,36,0.05)',
+        border: '1px solid rgba(251,191,36,0.15)',
+        borderRadius: '10px',
+        padding: '10px 14px',
+        marginBottom: '20px',
+        fontSize: '0.8rem',
+        color: 'var(--amber)',
+        display: 'flex',
+        gap: '8px',
+        alignItems: 'center'
+      }}>
+        <span>🛡️</span>
         <span>Your data is processed securely (DPDP & HIPAA standards). AI advice is not a substitute for your doctor.</span>
       </div>
 
-      {/* Chat Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {messages.map((m, idx) => (
-          <div key={idx} style={{ 
-            display: 'flex', 
-            gap: '12px', 
+      {/* 2. Messages List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
+        {messages.map((m, i) => (
+          <div key={i} style={{
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'flex-start',
             flexDirection: m.role === 'user' ? 'row-reverse' : 'row',
-            alignItems: 'flex-end'
+            alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+            width: '100%',
+            maxWidth: '85%'
           }}>
-            <div style={{ 
-              width: '32px', height: '32px', borderRadius: '50%', 
-              background: m.role === 'user' ? 'var(--text)' : 'var(--primary)', 
-              color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: m.role === 'user' ? 'var(--teal-dim)' : 'var(--primary-dim)',
+              border: m.role === 'user' ? '1px solid var(--teal-border)' : '1px solid var(--primary-border)',
+              color: m.role === 'user' ? 'var(--teal)' : 'var(--primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
             }}>
               {m.role === 'user' ? <User size={16} /> : <Bot size={16} />}
             </div>
-            
-            <div style={{ 
-              background: m.role === 'user' ? 'var(--surface-raised)' : 'linear-gradient(135deg, rgba(200,160,255,0.1) 0%, rgba(167,139,250,0.1) 100%)', 
-              padding: '12px 16px', 
-              borderRadius: '16px', 
-              borderBottomRightRadius: m.role === 'user' ? 0 : '16px',
-              borderBottomLeftRadius: m.role === 'assistant' ? 0 : '16px',
-              maxWidth: '80%',
-              fontSize: '0.9rem',
+            <div style={{
+              background: m.role === 'user' 
+                ? 'linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(16,185,129,0.03) 100%)' 
+                : 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(99,102,241,0.03) 100%)',
+              border: m.role === 'user' ? '1px solid var(--teal-border)' : '1px solid var(--primary-border)',
+              padding: '12px 16px',
+              borderRadius: '16px',
+              borderTopRightRadius: m.role === 'user' ? 0 : '16px',
+              borderTopLeftRadius: m.role === 'user' ? '16px' : 0,
+              fontSize: '0.92rem',
+              color: 'var(--text-primary)',
               lineHeight: 1.5,
-              border: m.role === 'assistant' ? '1px solid rgba(167,139,250,0.3)' : '1px solid var(--border)'
+              whiteSpace: 'pre-line'
             }}>
-              {m.content.split('\n').map((line, i) => <p key={i} style={{ margin: '0 0 8px 0', lastChild: { margin: 0 } }}>{line}</p>)}
+              {m.content}
             </div>
           </div>
         ))}
         {loading && (
           <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexDirection: 'row' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary-dim)', border: '1px solid var(--primary-border)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Bot size={16} />
             </div>
             <div style={{ 
-              background: 'linear-gradient(135deg, rgba(200,160,255,0.1) 0%, rgba(167,139,250,0.1) 100%)', 
+              background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(99,102,241,0.03) 100%)', 
               padding: '16px 20px', 
               borderRadius: '16px', 
               borderBottomLeftRadius: 0,
-              border: '1px solid rgba(167,139,250,0.3)',
+              border: '1px solid var(--primary-border)',
               display: 'flex',
               alignItems: 'center'
             }}>
@@ -236,19 +270,27 @@ export default function Chat() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
+      {/* 3. Input Area (Fixed above bottom-nav) */}
       <div style={{ 
-        padding: '16px 20px', 
-        background: 'var(--surface)', 
+        position: 'fixed',
+        bottom: 'calc(58px + env(safe-area-inset-bottom))',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '100%',
+        maxWidth: '680px',
+        padding: '12px 16px', 
+        background: 'rgba(9, 13, 22, 0.95)', 
+        backdropFilter: 'blur(16px)',
         borderTop: '1px solid var(--border)',
         display: 'flex',
-        alignItems: 'center'
+        alignItems: 'center',
+        zIndex: 100
       }}>
         <form onSubmit={handleSend} style={{ 
           display: 'flex', 
           alignItems: 'center', 
           width: '100%', 
-          background: 'var(--bg-base)', 
+          background: 'var(--bg-surface)', 
           borderRadius: '24px', 
           border: '1px solid var(--border-strong)',
           padding: '4px 8px 4px 16px',
