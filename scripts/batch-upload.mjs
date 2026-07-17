@@ -13,7 +13,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '../server/.env' }); // Load keys from server
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "YOUR_GEMINI_KEY_HERE");
-const aiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const aiModel = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
 // ---- Your Firebase Config ----
 const firebaseConfig = {
