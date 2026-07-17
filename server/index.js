@@ -72,8 +72,14 @@ CRITICAL RULES:
         }
         systemPrompt += `Markers:\n`;
         const markers = record.markers || {};
+        const markersDetail = record.markers_detail || {};
         for (const [key, value] of Object.entries(markers)) {
-           systemPrompt += `- ${key.toUpperCase()}: ${value}\n`;
+           const detail = markersDetail[key];
+           if (detail) {
+             systemPrompt += `- ${key.toUpperCase()}: ${detail.value} ${detail.unit || ''} (${detail.flag || 'Normal'}) [Ref: ${detail.reference_range || 'Unknown'}]\n`;
+           } else {
+             systemPrompt += `- ${key.toUpperCase()}: ${value}\n`;
+           }
         }
       });
     } else {
@@ -135,16 +141,27 @@ If the date is not found, use today's date (${new Date().toISOString().split('T'
     const text = aiResult.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
     const extractedData = JSON.parse(text);
 
-    // Format markers for the RAG Knowledge Graph
-    const formattedMarkers = {};
+    // Format markers for the Hybrid Data Model
+    const rawMarkers = {};
+    const markersDetail = {};
     for (const [k, v] of Object.entries(extractedData.markers || {})) {
-      formattedMarkers[k] = `${v.value} ${v.unit || ''} (${v.flag || 'Normal'}) [Ref: ${v.reference_range || 'Unknown'}]`.trim();
+      const val = parseFloat(v.value);
+      if (!isNaN(val)) {
+        rawMarkers[k] = val;
+      }
+      markersDetail[k] = {
+        value: v.value,
+        unit: v.unit || '',
+        flag: v.flag || 'Normal',
+        reference_range: v.reference_range || 'Unknown'
+      };
     }
 
     res.json({
       date: extractedData.date || new Date().toISOString().split('T')[0],
       tests: extractedData.test_types || ["Unknown"],
-      markers: formattedMarkers
+      markers: rawMarkers,
+      markers_detail: markersDetail
     });
   } catch (error) {
     console.error("Gemini Extraction Error:", error);

@@ -43,17 +43,13 @@ function Viewer({ report, onClose }) {
 
 // ── Doctor summary view ───────────────────────────────────────────
 const MARKER_META = {
+  pcratio:     { label:'Urine PCR',            unit:'mg/mg'  },
   creatinine:  { label:'Creatinine',           unit:'mg/dL'  },
   egfr:        { label:'eGFR',                  unit:'mL/min' },
-  bun:         { label:'BUN',                   unit:'mg/dL'  },
-  pcratio:     { label:'Protein:Creatinine',    unit:'mg/g'   },
-  protein:     { label:'Urine Protein',         unit:'mg/day' },
-  urineCreat:  { label:'Urine Creatinine',      unit:'mg/dL'  },
-  ana:         { label:'ANA',                   unit:''       },
-  chf:         { label:'BNP (CHF)',             unit:'pg/mL'  },
-  antiChf:     { label:'Anti-dsDNA',            unit:'IU/mL'  },
-  hemoglobin:  { label:'Hemoglobin',            unit:'g/dL'   },
+  bun:         { label:'BUN / Urea',            unit:'mg/dL'  },
+  urineProtein:{ label:'Urine Protein',         unit:'mg/dL'  },
   potassium:   { label:'Potassium',             unit:'mEq/L'  },
+  uricAcid:    { label:'Uric Acid',             unit:'mg/dL'  },
 };
 
 function DoctorView({ report, onClose }) {
@@ -237,7 +233,7 @@ function matchReport(report, term) {
   return fields.some(f => f.includes(t));
 }
 
-const CHIPS = ['All', 'Creatinine', 'eGFR', 'ANA', 'Protein', 'BNP', '2022', '2023', '2024', '2025', '2026'];
+const CHIPS = ['All', 'Urine PCR', 'Creatinine', 'eGFR', 'BUN / Urea', 'Urine Protein', 'Potassium', 'Uric Acid'];
 
 // ── Main History page ─────────────────────────────────────────────
 export default function History() {

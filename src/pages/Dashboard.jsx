@@ -86,20 +86,14 @@ const ChartTooltip = ({ active, payload, label, unit }) => {
   );
 };
 
-// ── Main trend markers shown on dashboard ────────────────────────
 const TREND_MARKERS = [
   { key:'pcratio',      color:'#f97316' },  // PCR — MOST IMPORTANT
   { key:'creatinine',   color:'#2dd4bf' },
+  { key:'egfr',         color:'#a78bfa' },  // Added eGFR
   { key:'urineProtein', color:'#fb923c' },
   { key:'bun',          color:'#60a5fa' },
   { key:'potassium',    color:'#34d399' },
   { key:'uricAcid',     color:'#f59e0b' },
-  { key:'albumin',      color:'#a78bfa' },
-  { key:'hemoglobin',   color:'#f472b6' },
-  { key:'sodium',       color:'#818cf8' },
-  { key:'totalProtein', color:'#6ee7b7' },
-  { key:'calcium',      color:'#fca5a5' },
-  { key:'glucose',      color:'#86efac' },
 ];
 
 export default function Dashboard() {
@@ -232,7 +226,7 @@ export default function Dashboard() {
           {/* ── Latest Values Grid ─── */}
           <p className="section-title">Latest Results</p>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'28px' }}>
-            {TREND_MARKERS.filter(m => latest[m.key] != null).slice(0, 6).map(m => (
+            {TREND_MARKERS.filter(m => latest[m.key] != null).slice(0, 8).map(m => (
               <div
                 key={m.key}
                 onClick={() => setActiveKey(m.key)}

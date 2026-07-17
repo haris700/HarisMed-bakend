@@ -119,6 +119,7 @@ export default function Chat() {
             isImage: file.type.startsWith('image/'),
             fileSizeKB: Math.round(file.size / 1024),
             markers: extracted.markers,
+            markers_detail: extracted.markers_detail, // Rich metadata for RAG!
             createdAt: new Date()
           });
 
@@ -132,7 +133,7 @@ export default function Chat() {
               ...filtered,
               { 
                 role: 'assistant', 
-                content: `✅ Successfully processed "${file.name}"!\n\nDate: ${extracted.date}\nTest Types: ${extracted.tests.join(', ')}\n\nExtracted Markers:\n${Object.entries(extracted.markers).map(([k, v]) => `- ${k.toUpperCase()}: ${v}`).join('\n')}\n\nI have automatically updated your RAG Knowledge Graph. Ask me anything about this new test!` 
+                content: `✅ Successfully processed "${file.name}"!\n\nDate: ${extracted.date}\nTest Types: ${extracted.tests.join(', ')}\n\nExtracted Markers:\n${Object.entries(extracted.markers_detail || {}).map(([k, v]) => `- ${k.toUpperCase()}: ${v.value} ${v.unit} (${v.flag})`).join('\n')}\n\nI have automatically updated your RAG Knowledge Graph. Ask me anything about this new test!` 
               }
             ];
           });
@@ -236,8 +237,23 @@ export default function Chat() {
       </div>
 
       {/* Input Area */}
-      <div style={{ padding: '20px', background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
-        <form onSubmit={handleSend} style={{ display: 'flex', gap: '10px' }}>
+      <div style={{ 
+        padding: '16px 20px', 
+        background: 'var(--surface)', 
+        borderTop: '1px solid var(--border)',
+        display: 'flex',
+        alignItems: 'center'
+      }}>
+        <form onSubmit={handleSend} style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          width: '100%', 
+          background: 'var(--bg-base)', 
+          borderRadius: '24px', 
+          border: '1px solid var(--border-strong)',
+          padding: '4px 8px 4px 16px',
+          gap: '8px'
+        }}>
           
           {/* File Input and Button */}
           <input 
@@ -252,34 +268,36 @@ export default function Chat() {
             onClick={() => fileInputRef.current?.click()}
             disabled={loading || uploading}
             style={{ 
-              background: 'var(--surface-raised)', 
+              background: 'none', 
+              border: 'none', 
               color: 'var(--text-secondary)', 
-              border: '1px solid var(--border-strong)', 
-              width: '44px', 
-              height: '44px', 
+              width: '36px', 
+              height: '36px', 
               borderRadius: '50%', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
               cursor: loading || uploading ? 'default' : 'pointer',
               transition: 'background 0.2s'
-            }}>
-            <Paperclip size={18} />
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-raised)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+          >
+            <Paperclip size={20} />
           </button>
 
           <input 
             type="text" 
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about your diet or lab trends..." 
+            placeholder={uploading ? "Analyzing report..." : "Ask about your diet or lab trends..."} 
             style={{ 
               flex: 1, 
-              padding: '12px 16px', 
-              borderRadius: '24px', 
-              border: '1px solid var(--border)', 
-              background: 'var(--bg)', 
-              color: 'var(--text)',
-              fontSize: '0.9rem',
+              padding: '10px 0', 
+              border: 'none',
+              background: 'transparent', 
+              color: 'var(--text-primary)',
+              fontSize: '0.92rem',
               outline: 'none'
             }} 
             disabled={loading || uploading}
@@ -288,19 +306,20 @@ export default function Chat() {
             type="submit" 
             disabled={!input.trim() || loading || uploading}
             style={{ 
-              background: input.trim() && !loading && !uploading ? 'var(--primary)' : 'var(--border)', 
-              color: 'white', 
+              background: input.trim() && !loading && !uploading ? 'var(--teal)' : 'transparent', 
+              color: input.trim() && !loading && !uploading ? 'var(--text-inverse)' : 'var(--text-muted)', 
               border: 'none', 
-              width: '44px', 
-              height: '44px', 
+              width: '36px', 
+              height: '36px', 
               borderRadius: '50%', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
               cursor: input.trim() && !loading && !uploading ? 'pointer' : 'default',
-              transition: 'background 0.2s'
+              transition: 'all 0.2s',
+              flexShrink: 0
             }}>
-            <Send size={18} />
+            <Send size={16} />
           </button>
         </form>
       </div>
