@@ -26,14 +26,19 @@ CRITICAL RULES:
 2. If their Potassium is high (>5.0), strongly advise against high-potassium foods (bananas, tomatoes, potatoes, oranges).
 3. If their PCR (Protein Creatinine Ratio) is high, advise on a renal diet (controlled protein, low sodium).
 4. Do NOT hallucinate medical advice. Always state: "Please consult your nephrologist before making major dietary changes."
-5. Be supportive and warm.
+5. CHAIN OF THOUGHT (CoT): If the user asks for a trend, highest, lowest, or a comparison across time, you MUST first explicitly list out all the relevant values and their dates from the provided context. Only AFTER listing them out, state the final answer. Do NOT guess.
+6. Be supportive and professional.
 
 ### PATIENT'S CURRENT BIOMARKERS (RAG CONTEXT) ###
 `;
     
     if (patientData && patientData.length > 0) {
       patientData.forEach(record => {
-        systemPrompt += `\nDate: ${record.date}\n`;
+        systemPrompt += `\n--- Date: ${record.date} ---\n`;
+        if (record.tests && record.tests.length > 0) {
+          systemPrompt += `Test Types (Node Edges): ${record.tests.join(', ')}\n`;
+        }
+        systemPrompt += `Markers:\n`;
         const markers = record.markers || {};
         for (const [key, value] of Object.entries(markers)) {
            systemPrompt += `- ${key.toUpperCase()}: ${value}\n`;
