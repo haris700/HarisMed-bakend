@@ -53,9 +53,13 @@ export default function Chat() {
     setInput('');
     setLoading(true);
 
+    const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:3001'
+      : 'https://harismed-bakend.onrender.com';
+
     try {
       // 2. Call our secure Render cloud backend
-      const response = await fetch('https://harismed-bakend.onrender.com/api/chat', {
+      const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -95,8 +99,12 @@ export default function Chat() {
         const base64Data = reader.result;
 
         try {
-          // 2. Call Render to extract biomarkers using Gemini 3.5 Flash
-          const response = await fetch('https://harismed-bakend.onrender.com/api/extract', {
+          // 2. Call server to extract biomarkers using Gemini 3.5 Flash
+          const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3001'
+            : 'https://harismed-bakend.onrender.com';
+
+          const response = await fetch(`${API_BASE}/api/extract`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

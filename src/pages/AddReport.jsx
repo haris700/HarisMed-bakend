@@ -52,8 +52,12 @@ export default function AddReport() {
         const base64Data = reader.result;
 
         try {
-          // Call Render to extract biomarkers using Gemini 3.5 Flash
-          const response = await fetch('https://harismed-bakend.onrender.com/api/extract', {
+          // Call server to extract biomarkers using Gemini 3.5 Flash
+          const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:3001'
+            : 'https://harismed-bakend.onrender.com';
+
+          const response = await fetch(`${API_BASE}/api/extract`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
