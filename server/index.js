@@ -62,7 +62,25 @@ CRITICAL RULES:
 `;
     
     if (patientData && patientData.length > 0) {
-      patientData.forEach(record => {
+      // Sort oldest to newest for chronological AI reasoning
+      const sorted = [...patientData].sort((a, b) => a.date.localeCompare(b.date));
+      
+      const seenEmptyRecords = new Set();
+      const uniqueRecords = [];
+      
+      for (const record of sorted) {
+        const hasMarkers = record.markers && Object.keys(record.markers).length > 0;
+        const key = `${record.date}-${(record.tests || '')}`;
+        
+        if (hasMarkers) {
+          uniqueRecords.push(record);
+        } else if (!seenEmptyRecords.has(key)) {
+          uniqueRecords.push(record);
+          seenEmptyRecords.add(key);
+        }
+      }
+
+      uniqueRecords.forEach(record => {
         systemPrompt += `\n--- Date: ${record.date} ---\n`;
         if (record.tests) {
           const testString = Array.isArray(record.tests) ? record.tests.join(', ') : record.tests;
