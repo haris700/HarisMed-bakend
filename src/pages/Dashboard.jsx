@@ -27,6 +27,8 @@ const RANGES = {
   totalProtein: { low: 6.3,  high: 8.2,   unit: 'g/dL',  label: 'Total Protein' },
   calcium:      { low: 8.4,  high: 10.2,  unit: 'mg/dL', label: 'Calcium' },
   glucose:      { low: 70,   high: 140,   unit: 'mg/dL', label: 'Glucose' },
+  urineRbc:     { low: 0,    high: 5,     unit: '/hpf',  label: 'Urine RBC' },
+  cholesterol:  { low: 0,    high: 200,   unit: 'mg/dL', label: 'Total Cholesterol' },
 };
 
 function getRangeStatus(key, val) {
@@ -94,6 +96,8 @@ const TREND_MARKERS = [
   { key:'bun',          color:'#60a5fa' },
   { key:'potassium',    color:'#34d399' },
   { key:'uricAcid',     color:'#f59e0b' },
+  { key:'urineRbc',     color:'#ef4444' },
+  { key:'cholesterol',  color:'#facc15' },
 ];
 
 export default function Dashboard() {

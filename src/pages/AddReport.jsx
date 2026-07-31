@@ -12,6 +12,8 @@ const RANGES = {
   urineProtein: { low: 0,    high: 12,    unit: 'mg/dL',  label: 'Urine Protein' },
   potassium:    { low: 3.5,  high: 5.0,   unit: 'mEq/L',  label: 'Potassium' },
   uricAcid:     { low: 3.5,  high: 7.2,   unit: 'mg/dL',  label: 'Uric Acid' },
+  urineRbc:     { low: 0,    high: 5,     unit: '/hpf',   label: 'Urine RBC' },
+  cholesterol:  { low: 0,    high: 200,   unit: 'mg/dL',  label: 'Total Cholesterol' },
 };
 
 const CORE_FIELDS = [
@@ -22,6 +24,8 @@ const CORE_FIELDS = [
   { key: 'urineProtein', label: 'Urine Protein',       unit: 'mg/dL',  placeholder: 'e.g. 12' },
   { key: 'potassium',    label: 'Potassium',           unit: 'mEq/L',  placeholder: 'e.g. 4.1' },
   { key: 'uricAcid',     label: 'Uric Acid',           unit: 'mg/dL',  placeholder: 'e.g. 6.0' },
+  { key: 'urineRbc',     label: 'Urine RBC',           unit: '/hpf',   placeholder: 'e.g. 2' },
+  { key: 'cholesterol',  label: 'Total Cholesterol',   unit: 'mg/dL',  placeholder: 'e.g. 180' },
 ];
 
 export default function AddReport() {
