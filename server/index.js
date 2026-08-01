@@ -27,6 +27,8 @@ app.post('/api/chat', async (req, res) => {
 
     // 0. Router Agent: Classify Intent (Multi-Agent Routing)
     let ontologyText = "";
+    let intentCategory = 'GENERAL';
+
     if (messages && messages.length > 0) {
       const lastUserMessage = messages.slice().reverse().find(m => m.role === 'user')?.content || "";
       if (lastUserMessage) {
@@ -40,12 +42,23 @@ app.post('/api/chat', async (req, res) => {
           });
           const intentData = JSON.parse(routerResponse.choices[0].message.content);
           console.log("🤖 Router Agent classified intent as:", intentData.intent);
+          intentCategory = intentData.intent;
           ontologyText = getOntologyContext(intentData.intent);
         } catch (e) {
           console.error("Router failed, falling back to general:", e);
         }
       }
     }
+
+    // 0.5. Define Masking Rules (Principle of Least Privilege)
+    const MARKER_WHITELIST = {
+      RENAL: ['creatinine', 'pcratio', 'egfr', 'bun', 'urineProtein', 'potassium', 'urineRbc', 'sodium', 'calcium', 'uricAcid'],
+      LIVER: ['ast', 'alt', 'bilirubin', 'albumin', 'alkalinePhosphatase', 'totalProtein'],
+      BLOOD: ['hemoglobin', 'wbc', 'rbc', 'platelets'],
+      METABOLIC: ['glucose', 'cholesterol', 'uricAcid', 'hba1c'],
+      GENERAL: null // null means allow all
+    };
+    const allowedMarkers = MARKER_WHITELIST[intentCategory.toUpperCase()] || null;
 
     // 1. Construct the System Prompt (Knowledge Graph context)
     let systemPrompt = `You are "HarisAI", a highly knowledgeable, empathetic, and professional nephrology and dietary assistant for the HarisMed app.
@@ -92,7 +105,15 @@ CRITICAL RULES:
         systemPrompt += `Markers:\n`;
         const markers = record.markers || {};
         const markersDetail = record.markers_detail || {};
+        
+        let addedCount = 0;
         for (const [key, value] of Object.entries(markers)) {
+           // Security Masking: Skip irrelevant markers based on intent
+           if (allowedMarkers && !allowedMarkers.includes(key) && !allowedMarkers.includes(key.toLowerCase())) {
+             continue;
+           }
+           addedCount++;
+           
            const detail = markersDetail[key];
            if (detail) {
              systemPrompt += `- ${key.toUpperCase()}: ${detail.value} ${detail.unit || ''} (${detail.flag || 'Normal'}) [Ref: ${detail.reference_range || 'Unknown'}]\n`;
@@ -100,6 +121,7 @@ CRITICAL RULES:
              systemPrompt += `- ${key.toUpperCase()}: ${value}\n`;
            }
         }
+        if (addedCount === 0) systemPrompt += `- (No relevant markers for this category)\n`;
       });
     } else {
       systemPrompt += `\nNo recent lab data provided.\n`;

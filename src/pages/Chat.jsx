@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
-import { Bot, User, Send, Loader2, Info, Paperclip } from 'lucide-react';
+import { Bot, User, Send, Paperclip } from 'lucide-react';
 
 export default function Chat() {
   const [messages, setMessages] = useState([
@@ -29,8 +29,8 @@ export default function Chat() {
             markers: d.markers
           };
         });
-        // Sort by date descending and grab up to 50 recent reports for deep historical context
-        const recentData = data.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 50);
+        // Sort by date descending and grab up to 5 recent reports for deep historical context
+        const recentData = data.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
         setPatientData(recentData);
       } catch (err) {
         console.error("Error fetching health data:", err);
@@ -131,8 +131,13 @@ export default function Chat() {
             createdAt: new Date()
           });
 
-          // 4. Update local RAG patient context immediately
-          setPatientData(prev => [extracted, ...prev]);
+          // 4. Update local RAG patient context immediately with sanitized data capped at 5 reports
+          const sanitizedExtracted = {
+            date: extracted.date,
+            tests: extracted.tests,
+            markers: extracted.markers
+          };
+          setPatientData(prev => [sanitizedExtracted, ...prev].slice(0, 5));
 
           // Replace the scanning message with success message
           setMessages(prev => {
