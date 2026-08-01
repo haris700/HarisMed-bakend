@@ -3,12 +3,17 @@ import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { 
   User, Stethoscope, Pill, AlertTriangle, Utensils, 
-  FileText, Upload, Plus, Trash2, Save, Loader2, Check, Sparkles 
+  FileText, Upload, Plus, Trash2, Save, Loader2, Check, Sparkles, RefreshCw 
 } from 'lucide-react';
 import { processFileForUpload } from '../utils/fileHelper';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 
   (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://harismed-bakend.onrender.com');
+
+const MOCK_DIAGNOSES = ['CKD Stage 3', 'Hypertension'];
+const MOCK_MEDS = ['Lisinopril', 'Allopurinol'];
+const MOCK_ALLERGIES = ['NSAIDs (Ibuprofen)'];
+const MOCK_DIETARY = ['Low Sodium (<2g/day)', 'Controlled Potassium'];
 
 export default function Profile() {
   const [loading, setLoading] = useState(true);
@@ -16,6 +21,7 @@ export default function Profile() {
   const [extracting, setExtracting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Start with completely EMPTY state by default
   const [diagnoses, setDiagnoses] = useState([]);
   const [medications, setMedications] = useState([]);
   const [allergies, setAllergies] = useState([]);
@@ -36,11 +42,22 @@ export default function Profile() {
         const snap = await getDoc(ref);
         if (snap.exists()) {
           const data = snap.data();
-          if (data.diagnoses) setDiagnoses(data.diagnoses);
-          if (data.medications) setMedications(data.medications);
-          if (data.allergies) setAllergies(data.allergies);
-          if (data.dietary_restrictions) setDietary(data.dietary_restrictions);
-          if (data.clinical_notes) setClinicalNotes(data.clinical_notes);
+
+          // Filter out any lingering mock items saved in earlier test runs
+          const cleanDiagnoses = (data.diagnoses || []).filter(d => !MOCK_DIAGNOSES.includes(d));
+          const cleanMeds = (data.medications || []).filter(m => {
+            const name = typeof m === 'string' ? m : m.name;
+            return !MOCK_MEDS.includes(name);
+          });
+          const cleanAllergies = (data.allergies || []).filter(a => !MOCK_ALLERGIES.includes(a));
+          const cleanDietary = (data.dietary_restrictions || []).filter(d => !MOCK_DIETARY.includes(d));
+          const cleanNotes = (data.clinical_notes || '').includes('Maintain hydration. Avoid NSAIDs.') ? '' : (data.clinical_notes || '');
+
+          setDiagnoses(cleanDiagnoses);
+          setMedications(cleanMeds);
+          setAllergies(cleanAllergies);
+          setDietary(cleanDietary);
+          setClinicalNotes(cleanNotes);
         }
       } catch (err) {
         console.error("Error loading profile:", err);
@@ -63,7 +80,7 @@ export default function Profile() {
         clinical_notes: clinicalNotes,
         updatedAt: new Date().toISOString()
       };
-      await setDoc(doc(db, 'profile', 'patient_profile'), payload, { merge: true });
+      await setDoc(doc(db, 'profile', 'patient_profile'), payload);
       setSuccessMsg('Medical profile saved successfully!');
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
@@ -71,6 +88,29 @@ export default function Profile() {
       alert("Failed to save profile. Please try again.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const clearProfile = async () => {
+    if (!window.confirm("Are you sure you want to clear all profile details?")) return;
+    setDiagnoses([]);
+    setMedications([]);
+    setAllergies([]);
+    setDietary([]);
+    setClinicalNotes('');
+    try {
+      await setDoc(doc(db, 'profile', 'patient_profile'), {
+        diagnoses: [],
+        medications: [],
+        allergies: [],
+        dietary_restrictions: [],
+        clinical_notes: '',
+        updatedAt: new Date().toISOString()
+      });
+      setSuccessMsg('Profile cleared!');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      console.error("Error clearing profile:", err);
     }
   };
 
@@ -101,42 +141,30 @@ export default function Profile() {
 
       const data = await response.json();
 
-      // 3. Merge extracted data with current state
-      const updatedDiagnoses = Array.from(new Set([...diagnoses, ...(data.diagnoses || [])]));
-      const updatedAllergies = Array.from(new Set([...allergies, ...(data.allergies || [])]));
-      const updatedDietary = Array.from(new Set([...dietary, ...(data.dietary_restrictions || [])]));
-      
-      let updatedMeds = [...medications];
-      if (data.medications && Array.isArray(data.medications)) {
-        data.medications.forEach(m => {
-          const medObj = typeof m === 'string' ? { name: m, dosage: '' } : m;
-          if (!updatedMeds.some(existing => existing.name.toLowerCase() === medObj.name.toLowerCase())) {
-            updatedMeds.push(medObj);
-          }
-        });
-      }
+      // 3. Set profile directly to fresh AI extracted data (overwrite old mock data)
+      const extractedDiagnoses = data.diagnoses || [];
+      const extractedAllergies = data.allergies || [];
+      const extractedDietary = data.dietary_restrictions || [];
+      const extractedMeds = (data.medications || []).map(m => typeof m === 'string' ? { name: m, dosage: '' } : m);
+      const extractedNotes = data.clinical_notes || '';
 
-      const updatedNotes = data.clinical_notes 
-        ? (clinicalNotes ? `${clinicalNotes}\n\n${data.clinical_notes}` : data.clinical_notes)
-        : clinicalNotes;
-
-      setDiagnoses(updatedDiagnoses);
-      setMedications(updatedMeds);
-      setAllergies(updatedAllergies);
-      setDietary(updatedDietary);
-      setClinicalNotes(updatedNotes);
+      setDiagnoses(extractedDiagnoses);
+      setMedications(extractedMeds);
+      setAllergies(extractedAllergies);
+      setDietary(extractedDietary);
+      setClinicalNotes(extractedNotes);
 
       const newPayload = {
-        diagnoses: updatedDiagnoses,
-        medications: updatedMeds,
-        allergies: updatedAllergies,
-        dietary_restrictions: updatedDietary,
-        clinical_notes: updatedNotes,
+        diagnoses: extractedDiagnoses,
+        medications: extractedMeds,
+        allergies: extractedAllergies,
+        dietary_restrictions: extractedDietary,
+        clinical_notes: extractedNotes,
         updatedAt: new Date().toISOString()
       };
 
       await saveProfile(newPayload);
-      setSuccessMsg('Prescription data extracted & profile updated by AI!');
+      setSuccessMsg('Prescription & OP Summary data extracted cleanly!');
     } catch (err) {
       console.error("AI prescription extraction failed:", err);
       alert(err.message || "Could not extract data from document. Please try again or type manually.");
@@ -184,28 +212,43 @@ export default function Profile() {
 
   return (
     <div className="fade-up" style={{ paddingBottom: '30px' }}>
-      {/* Header with Responsive Alignment */}
+      {/* Header */}
       <div className="page-header">
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:'12px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:'10px' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1 style={{ fontSize:'1.15rem', fontWeight:800, color:'var(--text-primary)', lineHeight:1.2 }}>Patient Clinical Profile</h1>
             <p style={{ fontSize:'0.75rem', color:'var(--text-muted)', marginTop:'2px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
               Diagnoses, Medications & Doctor Notes
             </p>
           </div>
-          <button 
-            onClick={() => saveProfile()} 
-            disabled={saving || extracting}
-            style={{
-              background:'var(--teal)', color:'#ffffff', border:'none',
-              padding:'8px 14px', borderRadius:'100px',
-              fontSize:'0.78rem', fontWeight:700, cursor:'pointer',
-              display:'inline-flex', alignItems:'center', gap:'6px',
-              flexShrink: 0, whiteSpace: 'nowrap'
-            }}>
-            {saving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
-            <span>Save Profile</span>
-          </button>
+          <div style={{ display:'flex', gap:'6px', flexShrink:0 }}>
+            <button 
+              onClick={clearProfile} 
+              disabled={saving || extracting}
+              title="Clear all fields"
+              style={{
+                background:'var(--bg-raised)', color:'var(--text-muted)', border:'1px solid var(--border)',
+                padding:'8px 12px', borderRadius:'100px',
+                fontSize:'0.78rem', fontWeight:600, cursor:'pointer',
+                display:'inline-flex', alignItems:'center', gap:'4px'
+              }}>
+              <RefreshCw size={13} />
+              <span>Clear</span>
+            </button>
+            <button 
+              onClick={() => saveProfile()} 
+              disabled={saving || extracting}
+              style={{
+                background:'var(--teal)', color:'#ffffff', border:'none',
+                padding:'8px 14px', borderRadius:'100px',
+                fontSize:'0.78rem', fontWeight:700, cursor:'pointer',
+                display:'inline-flex', alignItems:'center', gap:'6px',
+                whiteSpace: 'nowrap'
+              }}>
+              {saving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
+              <span>Save</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -278,7 +321,7 @@ export default function Profile() {
           <input 
             type="text" 
             className="field-input" 
-            placeholder="Add condition (e.g., CKD Stage 3)" 
+            placeholder="Add condition (e.g., C3 Glomerulopathy)" 
             value={newDiagnosis}
             onChange={e => setNewDiagnosis(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && addDiagnosis()}
@@ -318,7 +361,7 @@ export default function Profile() {
           <input 
             type="text" 
             className="field-input" 
-            placeholder="Medication name" 
+            placeholder="Medication name (e.g., Repace)" 
             value={newMedName}
             onChange={e => setNewMedName(e.target.value)}
             style={{ padding:'8px 12px', fontSize:'0.85rem' }}
@@ -326,7 +369,7 @@ export default function Profile() {
           <input 
             type="text" 
             className="field-input" 
-            placeholder="Dosage (e.g., 10mg)" 
+            placeholder="Dosage (e.g., 50mg 1-0-1)" 
             value={newMedDosage}
             onChange={e => setNewMedDosage(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && addMedication()}
@@ -351,6 +394,7 @@ export default function Profile() {
                 {a} <Trash2 size={10} style={{ cursor:'pointer', marginLeft:'2px' }} onClick={() => removeAllergy(i)} />
               </span>
             ))}
+            {allergies.length === 0 && <span style={{ fontSize:'0.75rem', color:'var(--text-muted)' }}>None listed</span>}
           </div>
           <div style={{ display:'flex', gap:'4px' }}>
             <input 
@@ -376,6 +420,7 @@ export default function Profile() {
                 {d} <Trash2 size={10} style={{ cursor:'pointer', marginLeft:'2px' }} onClick={() => removeDiet(i)} />
               </span>
             ))}
+            {dietary.length === 0 && <span style={{ fontSize:'0.75rem', color:'var(--text-muted)' }}>None listed</span>}
           </div>
           <div style={{ display:'flex', gap:'4px' }}>
             <input 
