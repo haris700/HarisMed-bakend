@@ -2,10 +2,16 @@ import express from 'express';
 import cors from 'cors';
 import { Groq } from 'groq-sdk';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { getOntologyContext } from './ontology.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 app.use(cors());
