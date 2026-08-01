@@ -78,9 +78,10 @@ function LatestCard({ label, value, unit, status, trend }) {
 // ── Custom chart tooltip ─────────────────────────────────────────
 const ChartTooltip = ({ active, payload, label, unit }) => {
   if (!active || !payload?.length) return null;
+  const dataItem = payload[0].payload;
   return (
     <div style={{ background:'var(--bg-raised)', border:'1px solid var(--border-strong)', borderRadius:'10px', padding:'10px 14px' }}>
-      <p style={{ fontSize:'0.75rem', color:'var(--text-muted)', marginBottom:'4px' }}>{label}</p>
+      <p style={{ fontSize:'0.75rem', color:'var(--text-muted)', marginBottom:'4px' }}>{dataItem.fullDate || label}</p>
       <p style={{ fontSize:'1rem', fontWeight:700, color:'var(--teal)' }}>
         {payload[0].value} <span style={{ fontSize:'0.75rem', fontWeight:400 }}>{unit}</span>
       </p>
@@ -127,15 +128,25 @@ export default function Dashboard() {
   }, [reports]);
 
   // Chart data for the selected key
-  const chartData = useMemo(() =>
-    reports
-      .filter(r => r.markers?.[activeKey] != null)
-      .map(r => ({
-        date: new Date(r.date).toLocaleDateString('en-US', { month:'short', year:'2-digit', timeZone:'UTC' }),
+  const chartData = useMemo(() => {
+    const filtered = reports.filter(r => r.markers?.[activeKey] != null);
+    const sorted = [...filtered].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return sorted.map(r => {
+      const d = new Date(r.date);
+      const hasValidDate = !isNaN(d.getTime());
+      const displayDate = hasValidDate
+        ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit', timeZone: 'UTC' })
+        : r.date;
+      const fullDate = hasValidDate
+        ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+        : r.date;
+      return {
+        date: displayDate,
+        fullDate,
         [activeKey]: r.markers[activeKey],
-      })),
-    [reports, activeKey]
-  );
+      };
+    });
+  }, [reports, activeKey]);
 
   const recentReports = useMemo(() => [...reports].reverse().slice(0, 4), [reports]);
   const r = RANGES[activeKey] || {};
