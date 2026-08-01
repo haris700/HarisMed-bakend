@@ -254,19 +254,35 @@ app.post('/api/extract-profile', async (req, res) => {
       ? fileData.split('base64,')[1] 
       : fileData;
 
-    const prompt = `You are an expert clinical data extractor parsing a prescription, discharge summary, or doctor note.
-Extract active medical conditions/diagnoses, current medications, allergies, dietary guidelines, and doctor instructions into strict JSON format:
+    const prompt = `You are a world-class clinical data extractor reading a doctor's prescription, OP summary, hospital discharge summary, or medical note.
+Thoroughly analyze the document and extract ALL key clinical information into a strict JSON object:
+
+1. "diagnoses": Extract all medical conditions, biopsy results, and primary diagnoses (e.g. ["C3 Glomerulopathy (C3GN)", "Proteinuria", "Hypertension"]).
+2. "medications": Extract ALL prescribed medications with exact name, strength, and frequency (e.g. [
+   { "name": "Tab. Repace 50mg", "dosage": "1-0-1 (1 month)" },
+   { "name": "Tab. Dapefy 5mg", "dosage": "0-1-0" },
+   { "name": "Tab. Wysolone 40mg", "dosage": "1-0-0 (After Food)" },
+   { "name": "Tab. Shelcal 500mg", "dosage": "1-0-1" },
+   { "name": "Tab. Aztor 10mg", "dosage": "0-0-1" },
+   { "name": "Tab. Pan 40mg", "dosage": "1-0-0 (Before Food)" },
+   { "name": "Tab. Bactrim DS", "dosage": "0-1/2-0" }
+]).
+3. "allergies": Extract any drug or food allergies mentioned (e.g. [] if "No Allergies" or none listed).
+4. "dietary_restrictions": Extract any dietary or lifestyle guidelines mentioned.
+5. "clinical_notes": Extract a comprehensive, detailed clinical summary including:
+   - Plan of Care & Biopsy / Diagnostic history (e.g. Renal biopsy C3 3+, glomeruli sclerosis, urine PCR trends)
+   - Vital Signs & Examination (e.g. BP: 150/90, Weight: 73.8kg, no oedema)
+   - Medication compliance notes & Doctor's review instructions (e.g. Patient noted irregular with ARB; Review in 1 month with CBC, Creatinine, Na, K, RBS, Urine R/E, Urine PCR).
+
+Return ONLY valid JSON matching this exact structure:
 {
-  "diagnoses": ["IgA Nephropathy", "CKD Stage 3", "Hypertension"],
-  "medications": [
-    { "name": "Lisinopril", "dosage": "10mg once daily" },
-    { "name": "Allopurinol", "dosage": "100mg once daily" }
-  ],
-  "allergies": ["Penicillin"],
-  "dietary_restrictions": ["Low Salt (<2g/day)", "Low Potassium"],
-  "clinical_notes": "Avoid NSAIDs (Ibuprofen/Naproxen). Follow up in 3 months."
+  "diagnoses": ["C3 Glomerulopathy", "Hypertension"],
+  "medications": [{ "name": "Tab. Repace 50mg", "dosage": "1-0-1" }],
+  "allergies": [],
+  "dietary_restrictions": [],
+  "clinical_notes": "Plan of Care: Renal biopsy shows C3GN... Examination: BP 150/90, wt 73.8kg. Follow up: Review in 1 month with CBC, Creatinine, Na, K, RBS, Urine R/E, Urine PCR."
 }
-If any field is missing or not mentioned in the document, use empty array [] or empty string "". Do not include markdown syntax, return raw JSON only.`;
+If any field is missing, use [] or "". Do not include markdown code block syntax. Return raw JSON only.`;
 
     const aiResult = await aiModel.generateContent([
       { inlineData: { data: base64Data, mimeType } },

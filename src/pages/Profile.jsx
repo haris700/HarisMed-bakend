@@ -16,14 +16,11 @@ export default function Profile() {
   const [extracting, setExtracting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
-  const [diagnoses, setDiagnoses] = useState(['CKD Stage 3', 'Hypertension']);
-  const [medications, setMedications] = useState([
-    { name: 'Lisinopril', dosage: '10mg once daily' },
-    { name: 'Allopurinol', dosage: '100mg once daily' }
-  ]);
-  const [allergies, setAllergies] = useState(['NSAIDs (Ibuprofen)']);
-  const [dietary, setDietary] = useState(['Low Sodium (<2g/day)', 'Controlled Potassium']);
-  const [clinicalNotes, setClinicalNotes] = useState('Maintain hydration. Avoid NSAIDs. Monitor blood pressure twice daily.');
+  const [diagnoses, setDiagnoses] = useState([]);
+  const [medications, setMedications] = useState([]);
+  const [allergies, setAllergies] = useState([]);
+  const [dietary, setDietary] = useState([]);
+  const [clinicalNotes, setClinicalNotes] = useState('');
 
   // Input states for adding new items
   const [newDiagnosis, setNewDiagnosis] = useState('');
@@ -120,7 +117,7 @@ export default function Profile() {
       }
 
       const updatedNotes = data.clinical_notes 
-        ? `${clinicalNotes ? clinicalNotes + '\n' : ''}[AI Extracted Note]: ${data.clinical_notes}`
+        ? (clinicalNotes ? `${clinicalNotes}\n\n${data.clinical_notes}` : data.clinical_notes)
         : clinicalNotes;
 
       setDiagnoses(updatedDiagnoses);
@@ -402,7 +399,7 @@ export default function Profile() {
         </div>
         <textarea 
           className="field-input" 
-          rows={4}
+          rows={7}
           placeholder="Enter instructions from your doctor or clinical summary..."
           value={clinicalNotes}
           onChange={e => setClinicalNotes(e.target.value)}
