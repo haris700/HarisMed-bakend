@@ -4,10 +4,9 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts';
 import { Link } from 'react-router-dom';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Loader2, FileText, ChevronRight, TrendingUp, TrendingDown, Minus, ArrowRight } from 'lucide-react';
-
+import { Loader2, FileText, ChevronRight, TrendingUp, TrendingDown, Minus, ArrowRight, User, Stethoscope, Pill } from 'lucide-react';
 
 // ── Reference ranges for common kidney markers ──────────────────
 const RANGES = {
@@ -103,17 +102,30 @@ const TREND_MARKERS = [
 
 export default function Dashboard() {
   const [reports, setReports]     = useState([]);
+  const [profile, setProfile]     = useState(null);
   const [loading, setLoading]     = useState(true);
   const [activeKey, setActiveKey] = useState('creatinine');
 
   useEffect(() => {
     const q = query(collection(db, 'reports'), orderBy('date', 'asc'));
-    return onSnapshot(q, snap => {
+    const unsub = onSnapshot(q, snap => {
       const data = [];
       snap.forEach(d => data.push({ id: d.id, ...d.data() }));
       setReports(data);
       setLoading(false);
     });
+
+    async function loadProfile() {
+      try {
+        const snap = await getDoc(doc(db, 'profile', 'patient_profile'));
+        if (snap.exists()) setProfile(snap.data());
+      } catch (err) {
+        console.error("Error loading profile on dashboard:", err);
+      }
+    }
+    loadProfile();
+
+    return unsub;
   }, []);
 
   // Latest marker values (from most-recent report that has that field)
@@ -177,6 +189,28 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
+          {/* ── Patient Clinical Profile Quick Access ── */}
+          <div className="card" style={{ marginBottom:'18px', padding:'14px 18px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+              <div style={{ background:'var(--teal-dim)', border:'1px solid var(--teal-border)', borderRadius:'10px', padding:'9px', color:'var(--teal)' }}>
+                <Stethoscope size={20} />
+              </div>
+              <div>
+                <span style={{ fontSize:'0.82rem', fontWeight:700, color:'var(--text-primary)', display:'block' }}>Clinical Profile & Prescriptions</span>
+                <span style={{ fontSize:'0.75rem', color:'var(--text-muted)' }}>
+                  {profile?.diagnoses?.length ? `${profile.diagnoses.join(', ')}` : 'Diagnoses & Medications'}
+                  {profile?.medications?.length ? ` · ${profile.medications.length} active meds` : ''}
+                </span>
+              </div>
+            </div>
+            <Link to="/profile" style={{
+              background:'var(--bg-raised)', border:'1px solid var(--border-strong)', color:'var(--text-primary)',
+              padding:'6px 14px', borderRadius:'100px', fontSize:'0.75rem', fontWeight:700, textDecoration:'none'
+            }}>
+              View Profile →
+            </Link>
+          </div>
+
           {/* ── PCR Hero Card ── */}
           {(() => {
             const pcrVals = reports

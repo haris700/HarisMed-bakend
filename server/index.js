@@ -23,7 +23,7 @@ const aiModel = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 // The RAG Endpoint
 app.post('/api/chat', async (req, res) => {
   try {
-    const { messages, patientData } = req.body;
+    const { messages, patientData, patientProfile } = req.body;
 
     // 0. Router Agent: Classify Intent (Multi-Agent Routing)
     let ontologyText = "";
@@ -62,18 +62,40 @@ app.post('/api/chat', async (req, res) => {
 
     // 1. Construct the System Prompt (Knowledge Graph context)
     let systemPrompt = `You are "HarisAI", a highly knowledgeable, empathetic, and professional nephrology and dietary assistant for the HarisMed app.
-You are helping a patient manage their health records and diet based on their recent lab results.
+You are helping a patient manage their health records, medications, and diet based on their clinical profile and recent lab results.
 ${ontologyText}
 CRITICAL RULES:
-1. Always base your dietary and health suggestions strictly on the patient's provided lab data below.
+1. Always base your dietary and health suggestions strictly on the patient's provided lab data and medical profile below.
 2. If their Potassium is high (>5.0), strongly advise against high-potassium foods (bananas, tomatoes, potatoes, oranges).
 3. If their PCR (Protein Creatinine Ratio) is high, advise on a renal diet (controlled protein, low sodium).
-4. Do NOT hallucinate medical advice. Always state: "Please consult your nephrologist before making major dietary changes."
-5. CHAIN OF THOUGHT (CoT): If the user asks for a trend, highest, lowest, or a comparison across time, you MUST first explicitly list out all the relevant values and their dates from the provided context. Only AFTER listing them out, state the final answer. Do NOT guess.
-6. Be supportive and professional.
-
-### PATIENT'S CURRENT BIOMARKERS (RAG CONTEXT) ###
+4. Consider their active medications and diagnoses when offering advice.
+5. Do NOT hallucinate medical advice. Always state: "Please consult your nephrologist before making major dietary or medication changes."
+6. CHAIN OF THOUGHT (CoT): If the user asks for a trend, highest, lowest, or a comparison across time, you MUST first explicitly list out all the relevant values and their dates from the provided context. Only AFTER listing them out, state the final answer. Do NOT guess.
+7. Be supportive and professional.
 `;
+
+    // 1.5 Inject Patient Medical Profile if available
+    if (patientProfile && typeof patientProfile === 'object') {
+      systemPrompt += `\n### PATIENT MEDICAL PROFILE & CLINICAL CONTEXT ###\n`;
+      if (patientProfile.diagnoses && patientProfile.diagnoses.length > 0) {
+        systemPrompt += `Active Diagnoses: ${patientProfile.diagnoses.join(', ')}\n`;
+      }
+      if (patientProfile.medications && patientProfile.medications.length > 0) {
+        const medList = patientProfile.medications.map(m => typeof m === 'object' ? `${m.name} (${m.dosage || ''})` : m).join(', ');
+        systemPrompt += `Active Medications: ${medList}\n`;
+      }
+      if (patientProfile.allergies && patientProfile.allergies.length > 0) {
+        systemPrompt += `Allergies / Intolerances: ${patientProfile.allergies.join(', ')}\n`;
+      }
+      if (patientProfile.dietary_restrictions && patientProfile.dietary_restrictions.length > 0) {
+        systemPrompt += `Dietary Guidelines: ${patientProfile.dietary_restrictions.join(', ')}\n`;
+      }
+      if (patientProfile.clinical_notes) {
+        systemPrompt += `Doctor / Clinical Notes: ${patientProfile.clinical_notes}\n`;
+      }
+    }
+
+    systemPrompt += `\n### PATIENT'S CURRENT BIOMARKERS (RAG CONTEXT) ###\n`;
     
     if (patientData && patientData.length > 0) {
       // Sort oldest to newest for chronological AI reasoning
@@ -150,7 +172,7 @@ CRITICAL RULES:
   }
 });
 
-// Mobile Document Auto-Extraction Endpoint (Gemini 3.5 Flash)
+// Mobile Document Auto-Extraction Endpoint (Gemini 3.6 Flash)
 app.post('/api/extract', async (req, res) => {
   try {
     const { fileData, mimeType } = req.body;
@@ -211,6 +233,47 @@ If the date is not found, use today's date (${new Date().toISOString().split('T'
   } catch (error) {
     console.error("Gemini Extraction Error:", error);
     res.status(500).json({ error: "Failed to extract data from document" });
+  }
+});
+
+// Prescription & Clinical Summary Auto-Extraction Endpoint (Gemini 3.6 Flash)
+app.post('/api/extract-profile', async (req, res) => {
+  try {
+    const { fileData, mimeType } = req.body;
+    if (!fileData || !mimeType) {
+      return res.status(400).json({ error: "Missing fileData or mimeType" });
+    }
+
+    const base64Data = fileData.includes('base64,') 
+      ? fileData.split('base64,')[1] 
+      : fileData;
+
+    const prompt = `You are an expert clinical data extractor parsing a prescription, discharge summary, or doctor note.
+Extract active medical conditions/diagnoses, current medications, allergies, dietary guidelines, and doctor instructions into strict JSON format:
+{
+  "diagnoses": ["IgA Nephropathy", "CKD Stage 3", "Hypertension"],
+  "medications": [
+    { "name": "Lisinopril", "dosage": "10mg once daily" },
+    { "name": "Allopurinol", "dosage": "100mg once daily" }
+  ],
+  "allergies": ["Penicillin"],
+  "dietary_restrictions": ["Low Salt (<2g/day)", "Low Potassium"],
+  "clinical_notes": "Avoid NSAIDs (Ibuprofen/Naproxen). Follow up in 3 months."
+}
+If any field is missing or not mentioned in the document, use empty array [] or empty string "". Do not include markdown syntax, return raw JSON only.`;
+
+    const aiResult = await aiModel.generateContent([
+      { inlineData: { data: base64Data, mimeType } },
+      prompt
+    ]);
+
+    const text = aiResult.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+    const extractedProfile = JSON.parse(text);
+
+    res.json(extractedProfile);
+  } catch (error) {
+    console.error("Gemini Profile Extraction Error:", error);
+    res.status(500).json({ error: "Failed to extract medical profile from document" });
   }
 });
 

@@ -1,39 +1,43 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
-import { collection, getDocs, addDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, addDoc } from 'firebase/firestore';
 import { Bot, User, Send, Paperclip } from 'lucide-react';
 
 export default function Chat() {
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hi Haris! I have securely accessed your latest kidney health records (PCR, Creatinine, etc). Ask me anything about your diet, trends, or what you should be eating today!' }
+    { role: 'assistant', content: 'Hi Haris! I have securely accessed your clinical profile and lab records (PCR, Creatinine, Medications, etc). Ask me anything about your diet, medications, trends, or health guidelines!' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [patientData, setPatientData] = useState([]);
+  const [patientProfile, setPatientProfile] = useState(null);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // 1. Fetch structured health data from Firestore (The RAG Knowledge base)
+  // 1. Fetch structured health data & medical profile from Firestore (The RAG Knowledge base)
   useEffect(() => {
     const fetchHealthData = async () => {
       try {
         const snap = await getDocs(collection(db, 'reports'));
-        const data = snap.docs.map(doc => {
-          const d = doc.data();
-          // CRITICAL: Strip out the massive base64 PDF/image data before sending to AI
-          // We only want to send the lightweight structured Knowledge Graph
+        const data = snap.docs.map(d => {
+          const docData = d.data();
           return {
-            date: d.date,
-            tests: d.tests,
-            markers: d.markers
+            date: docData.date,
+            tests: docData.tests,
+            markers: docData.markers
           };
         });
-        // Sort by date descending and grab up to 5 recent reports for deep historical context
         const recentData = data.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
         setPatientData(recentData);
+
+        // Fetch patient profile (diagnoses, medications, allergies, notes)
+        const profileSnap = await getDoc(doc(db, 'profile', 'patient_profile'));
+        if (profileSnap.exists()) {
+          setPatientProfile(profileSnap.data());
+        }
       } catch (err) {
-        console.error("Error fetching health data:", err);
+        console.error("Error fetching health data or profile:", err);
       }
     };
     fetchHealthData();
@@ -58,13 +62,14 @@ export default function Chat() {
       : 'https://harismed-bakend.onrender.com';
 
     try {
-      // 2. Call our secure Render cloud backend
+      // 2. Call our secure Render cloud backend with RAG context & Medical Profile
       const response = await fetch(`${API_BASE}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: newMessages,
-          patientData: patientData // Inject the RAG context
+          patientData: patientData,
+          patientProfile: patientProfile
         }),
       });
 

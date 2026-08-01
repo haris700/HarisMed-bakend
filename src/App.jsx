@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
-import { Activity, PlusCircle, Search, MessageCircle, Sun, Moon, Stethoscope } from 'lucide-react';
+import { Activity, PlusCircle, Search, MessageCircle, User, Sun, Moon, Stethoscope } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import AddReport from './pages/AddReport';
 import History from './pages/History';
 import Chat from './pages/Chat';
+import Profile from './pages/Profile';
 
 export default function App() {
   const [theme, setTheme] = useState(() => {
@@ -44,10 +45,11 @@ export default function App() {
 
       <main className="page">
         <Routes>
-          <Route path="/"       element={<Dashboard theme={theme} />} />
-          <Route path="/add"    element={<AddReport theme={theme} />} />
+          <Route path="/"        element={<Dashboard theme={theme} />} />
+          <Route path="/add"     element={<AddReport theme={theme} />} />
+          <Route path="/profile" element={<Profile theme={theme} />} />
+          <Route path="/chat"    element={<Chat theme={theme} />} />
           <Route path="/history" element={<History theme={theme} />} />
-          <Route path="/chat"   element={<Chat theme={theme} />} />
         </Routes>
       </main>
 
@@ -57,6 +59,9 @@ export default function App() {
         </NavLink>
         <NavLink to="/add" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
           <PlusCircle /><span>Add</span>
+        </NavLink>
+        <NavLink to="/profile" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+          <User /><span>Profile</span>
         </NavLink>
         <NavLink to="/chat" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
           <MessageCircle /><span>HarisAI</span>
