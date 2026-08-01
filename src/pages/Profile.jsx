@@ -5,6 +5,7 @@ import {
   User, Stethoscope, Pill, AlertTriangle, Utensils, 
   FileText, Upload, Plus, Trash2, Save, Loader2, Check, Sparkles 
 } from 'lucide-react';
+import { processFileForUpload } from '../utils/fileHelper';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 
   (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://harismed-bakend.onrender.com');
@@ -84,62 +85,64 @@ export default function Profile() {
     setSuccessMsg('');
 
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const fileData = event.target.result;
-        const mimeType = file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
+      // 1. Process & compress image/document to prevent 'Payload Too Large' (413)
+      const { fileData, mimeType } = await processFileForUpload(file);
 
-        const response = await fetch(`${API_BASE_URL}/api/extract-profile`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fileData, mimeType })
-        });
+      // 2. Call AI extraction backend
+      const response = await fetch(`${API_BASE_URL}/api/extract-profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileData, mimeType })
+      });
 
-        if (!response.ok) throw new Error("Failed to extract data");
-
-        const data = await response.json();
-
-        // Merge extracted data with current state
-        const updatedDiagnoses = Array.from(new Set([...diagnoses, ...(data.diagnoses || [])]));
-        const updatedAllergies = Array.from(new Set([...allergies, ...(data.allergies || [])]));
-        const updatedDietary = Array.from(new Set([...dietary, ...(data.dietary_restrictions || [])]));
-        
-        let updatedMeds = [...medications];
-        if (data.medications && Array.isArray(data.medications)) {
-          data.medications.forEach(m => {
-            const medObj = typeof m === 'string' ? { name: m, dosage: '' } : m;
-            if (!updatedMeds.some(existing => existing.name.toLowerCase() === medObj.name.toLowerCase())) {
-              updatedMeds.push(medObj);
-            }
-          });
+      if (!response.ok) {
+        if (response.status === 413) {
+          throw new Error("File is too large even after compression. Please try a smaller image or PDF.");
         }
+        throw new Error("Failed to extract clinical data from file");
+      }
 
-        const updatedNotes = data.clinical_notes 
-          ? `${clinicalNotes ? clinicalNotes + '\n' : ''}[AI Extracted Note]: ${data.clinical_notes}`
-          : clinicalNotes;
+      const data = await response.json();
 
-        setDiagnoses(updatedDiagnoses);
-        setMedications(updatedMeds);
-        setAllergies(updatedAllergies);
-        setDietary(updatedDietary);
-        setClinicalNotes(updatedNotes);
+      // 3. Merge extracted data with current state
+      const updatedDiagnoses = Array.from(new Set([...diagnoses, ...(data.diagnoses || [])]));
+      const updatedAllergies = Array.from(new Set([...allergies, ...(data.allergies || [])]));
+      const updatedDietary = Array.from(new Set([...dietary, ...(data.dietary_restrictions || [])]));
+      
+      let updatedMeds = [...medications];
+      if (data.medications && Array.isArray(data.medications)) {
+        data.medications.forEach(m => {
+          const medObj = typeof m === 'string' ? { name: m, dosage: '' } : m;
+          if (!updatedMeds.some(existing => existing.name.toLowerCase() === medObj.name.toLowerCase())) {
+            updatedMeds.push(medObj);
+          }
+        });
+      }
 
-        const newPayload = {
-          diagnoses: updatedDiagnoses,
-          medications: updatedMeds,
-          allergies: updatedAllergies,
-          dietary_restrictions: updatedDietary,
-          clinical_notes: updatedNotes,
-          updatedAt: new Date().toISOString()
-        };
+      const updatedNotes = data.clinical_notes 
+        ? `${clinicalNotes ? clinicalNotes + '\n' : ''}[AI Extracted Note]: ${data.clinical_notes}`
+        : clinicalNotes;
 
-        await saveProfile(newPayload);
-        setSuccessMsg('Prescription data extracted & profile updated by AI!');
+      setDiagnoses(updatedDiagnoses);
+      setMedications(updatedMeds);
+      setAllergies(updatedAllergies);
+      setDietary(updatedDietary);
+      setClinicalNotes(updatedNotes);
+
+      const newPayload = {
+        diagnoses: updatedDiagnoses,
+        medications: updatedMeds,
+        allergies: updatedAllergies,
+        dietary_restrictions: updatedDietary,
+        clinical_notes: updatedNotes,
+        updatedAt: new Date().toISOString()
       };
-      reader.readAsDataURL(file);
+
+      await saveProfile(newPayload);
+      setSuccessMsg('Prescription data extracted & profile updated by AI!');
     } catch (err) {
       console.error("AI prescription extraction failed:", err);
-      alert("Could not extract data from document. Please try again or type manually.");
+      alert(err.message || "Could not extract data from document. Please try again or type manually.");
     } finally {
       setExtracting(false);
     }
@@ -184,21 +187,24 @@ export default function Profile() {
 
   return (
     <div className="fade-up" style={{ paddingBottom: '30px' }}>
-      {/* Header */}
+      {/* Header with Responsive Alignment */}
       <div className="page-header">
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <div>
-            <h1 style={{ fontSize:'1.2rem', fontWeight:800, color:'var(--text-primary)' }}>Patient Clinical Profile</h1>
-            <p style={{ fontSize:'0.78rem', color:'var(--text-muted)' }}>Diagnoses, Active Medications & Doctor Notes</p>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:'12px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={{ fontSize:'1.15rem', fontWeight:800, color:'var(--text-primary)', lineHeight:1.2 }}>Patient Clinical Profile</h1>
+            <p style={{ fontSize:'0.75rem', color:'var(--text-muted)', marginTop:'2px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+              Diagnoses, Medications & Doctor Notes
+            </p>
           </div>
           <button 
             onClick={() => saveProfile()} 
-            disabled={saving}
+            disabled={saving || extracting}
             style={{
               background:'var(--teal)', color:'#ffffff', border:'none',
-              padding:'8px 16px', borderRadius:'100px',
-              fontSize:'0.82rem', fontWeight:700, cursor:'pointer',
-              display:'inline-flex', alignItems:'center', gap:'6px'
+              padding:'8px 14px', borderRadius:'100px',
+              fontSize:'0.78rem', fontWeight:700, cursor:'pointer',
+              display:'inline-flex', alignItems:'center', gap:'6px',
+              flexShrink: 0, whiteSpace: 'nowrap'
             }}>
             {saving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
             <span>Save Profile</span>
@@ -224,16 +230,21 @@ export default function Profile() {
         marginBottom: '20px', padding: '18px'
       }}>
         <div style={{ display:'flex', alignItems:'flex-start', gap:'12px' }}>
-          <div style={{ background:'var(--teal)', borderRadius:'10px', padding:'10px', color:'#fff' }}>
+          <div style={{ background:'var(--teal)', borderRadius:'10px', padding:'10px', color:'#fff', flexShrink:0 }}>
             <Sparkles size={20} />
           </div>
-          <div style={{ flex:1 }}>
+          <div style={{ flex:1, minWidth: 0 }}>
             <h3 style={{ fontSize:'0.95rem', fontWeight:700, marginBottom:'4px' }}>AI Prescription & Clinical Extractor</h3>
             <p style={{ fontSize:'0.8rem', color:'var(--text-secondary)', lineHeight:1.5, marginBottom:'12px' }}>
               Upload a doctor note, discharge summary, or prescription (PDF / Image). Gemini AI will extract active diagnoses, medications, and clinical guidelines directly into your medical profile.
             </p>
             
-            <label className="btn btn-teal" style={{ display:'inline-flex', width:'auto', padding:'8px 16px', fontSize:'0.8rem', cursor:'pointer' }}>
+            <label 
+              className="btn btn-teal" 
+              style={{ 
+                display:'inline-flex', width:'auto', padding:'9px 18px', fontSize:'0.82rem', cursor: extracting ? 'not-allowed' : 'pointer',
+                opacity: extracting ? 0.8 : 1
+              }}>
               {extracting ? (
                 <>
                   <Loader2 size={16} className="spin" />
@@ -276,7 +287,7 @@ export default function Profile() {
             onKeyDown={e => e.key === 'Enter' && addDiagnosis()}
             style={{ padding:'8px 12px', fontSize:'0.85rem' }}
           />
-          <button onClick={addDiagnosis} className="btn btn-ghost" style={{ width:'auto', padding:'8px 14px' }}>
+          <button onClick={addDiagnosis} className="btn btn-ghost" style={{ width:'auto', padding:'8px 14px', flexShrink:0 }}>
             <Plus size={16} />
           </button>
         </div>
@@ -318,13 +329,13 @@ export default function Profile() {
           <input 
             type="text" 
             className="field-input" 
-            placeholder="Dosage (e.g., 10mg daily)" 
+            placeholder="Dosage (e.g., 10mg)" 
             value={newMedDosage}
             onChange={e => setNewMedDosage(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && addMedication()}
             style={{ padding:'8px 12px', fontSize:'0.85rem' }}
           />
-          <button onClick={addMedication} className="btn btn-ghost" style={{ width:'auto', padding:'8px 14px' }}>
+          <button onClick={addMedication} className="btn btn-ghost" style={{ width:'auto', padding:'8px 14px', flexShrink:0 }}>
             <Plus size={16} />
           </button>
         </div>
@@ -351,7 +362,7 @@ export default function Profile() {
               onKeyDown={e => e.key === 'Enter' && addAllergy()}
               style={{ padding:'6px 10px', fontSize:'0.78rem' }}
             />
-            <button onClick={addAllergy} className="btn btn-ghost" style={{ width:'auto', padding:'6px 10px' }}>
+            <button onClick={addAllergy} className="btn btn-ghost" style={{ width:'auto', padding:'6px 10px', flexShrink:0 }}>
               <Plus size={14} />
             </button>
           </div>
@@ -376,7 +387,7 @@ export default function Profile() {
               onKeyDown={e => e.key === 'Enter' && addDiet()}
               style={{ padding:'6px 10px', fontSize:'0.78rem' }}
             />
-            <button onClick={addDiet} className="btn btn-ghost" style={{ width:'auto', padding:'6px 10px' }}>
+            <button onClick={addDiet} className="btn btn-ghost" style={{ width:'auto', padding:'6px 10px', flexShrink:0 }}>
               <Plus size={14} />
             </button>
           </div>
@@ -402,7 +413,7 @@ export default function Profile() {
       {/* Save Button */}
       <button 
         onClick={() => saveProfile()} 
-        disabled={saving}
+        disabled={saving || extracting}
         className="btn btn-teal"
         style={{ padding:'14px', fontSize:'0.92rem' }}>
         {saving ? <Loader2 size={18} className="spin" /> : <Save size={18} />}

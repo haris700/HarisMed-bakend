@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { CheckCircle, Plus, UploadCloud, File, Loader2 } from 'lucide-react';
+import { processFileForUpload } from '../utils/fileHelper';
 
 // Reference ranges for the 7 core markers
 const RANGES = {
@@ -50,52 +51,43 @@ export default function AddReport() {
     setScanning(true);
 
     try {
-      const reader = new FileReader();
-      reader.readAsDataURL(selectedFile);
-      reader.onloadend = async () => {
-        const base64Data = reader.result;
+      // Compress image/document before upload
+      const { fileData, mimeType } = await processFileForUpload(selectedFile);
 
-        try {
-          // Call server to extract biomarkers using Gemini 3.5 Flash
-          const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:3001'
-            : 'https://harismed-bakend.onrender.com';
+      const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:3001'
+        : 'https://harismed-bakend.onrender.com';
 
-          const response = await fetch(`${API_BASE}/api/extract`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              fileData: base64Data,
-              mimeType: selectedFile.type
-            })
-          });
+      const response = await fetch(`${API_BASE}/api/extract`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileData,
+          mimeType
+        })
+      });
 
-          if (!response.ok) throw new Error("Auto-fill failed");
-          const extracted = await response.json();
+      if (!response.ok) throw new Error("Auto-fill failed");
+      const extracted = await response.json();
 
-          // Auto-populate form
-          if (extracted.date) setDate(extracted.date);
-          if (extracted.tests) setTests(extracted.tests.join(', '));
-          
-          // Load markers into form inputs
-          const newMarkers = {};
-          CORE_FIELDS.forEach(f => {
-            if (extracted.markers[f.key] !== undefined) {
-              newMarkers[f.key] = extracted.markers[f.key];
-            }
-          });
-          setMarkers(newMarkers);
-          setExtractedDetails(extracted.markers_detail || {});
-
-        } catch (err) {
-          console.error("Auto-extraction failed:", err);
-          alert("Could not auto-fill report details. You can still type them manually!");
-        } finally {
-          setScanning(false);
+      // Auto-populate form
+      if (extracted.date) setDate(extracted.date);
+      if (extracted.tests) setTests(extracted.tests.join(', '));
+      
+      // Load markers into form inputs
+      const newMarkers = {};
+      CORE_FIELDS.forEach(f => {
+        if (extracted.markers[f.key] !== undefined) {
+          newMarkers[f.key] = extracted.markers[f.key];
         }
-      };
+      });
+      setMarkers(newMarkers);
+      setExtractedDetails(extracted.markers_detail || {});
+
     } catch (err) {
-      console.error(err);
+      console.error("Auto-extraction failed:", err);
+      alert("Could not auto-fill report details. You can still type them manually!");
+    } finally {
       setScanning(false);
     }
   };
