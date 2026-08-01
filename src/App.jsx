@@ -1,20 +1,53 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
-import { Activity, PlusCircle, Search, MessageCircle } from 'lucide-react';
+import { Activity, PlusCircle, Search, MessageCircle, Sun, Moon, Stethoscope } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import AddReport from './pages/AddReport';
 import History from './pages/History';
 import Chat from './pages/Chat';
 
 export default function App() {
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('harismed-theme') || 'light';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('harismed-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
+
   return (
     <Router>
+      <header className="app-topbar">
+        <div className="topbar-brand">
+          <div className="brand-icon">
+            <Stethoscope size={19} color="var(--teal)" />
+          </div>
+          <div>
+            <span className="brand-title">HarisMed</span>
+            <span className="brand-subtitle">Nephrology & Health Tracker</span>
+          </div>
+        </div>
+        <button 
+          onClick={toggleTheme} 
+          className="theme-toggle-btn"
+          aria-label="Toggle Theme"
+        >
+          {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
+          <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+        </button>
+      </header>
+
       <main className="page">
         <Routes>
-          <Route path="/"       element={<Dashboard />} />
-          <Route path="/add"    element={<AddReport />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/chat"   element={<Chat />} />
+          <Route path="/"       element={<Dashboard theme={theme} />} />
+          <Route path="/add"    element={<AddReport theme={theme} />} />
+          <Route path="/history" element={<History theme={theme} />} />
+          <Route path="/chat"   element={<Chat theme={theme} />} />
         </Routes>
       </main>
 

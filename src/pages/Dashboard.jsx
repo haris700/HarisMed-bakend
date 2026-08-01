@@ -309,7 +309,7 @@ export default function Dashboard() {
               <div style={{ height:'210px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top:4, right:16, bottom:0, left:-24 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
                     <XAxis dataKey="date" stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
                     <YAxis stroke="var(--text-muted)" fontSize={11} tickLine={false} axisLine={false} />
                     <Tooltip content={<ChartTooltip unit={r.unit} />} />
