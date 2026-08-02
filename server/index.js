@@ -41,7 +41,7 @@ app.post('/api/chat', async (req, res) => {
         const routerPrompt = `Analyze the medical question and classify it into ONE category: RENAL, LIVER, BLOOD, METABOLIC, or GENERAL. Output ONLY valid JSON: {"intent": "CATEGORY"}\nQuestion: ${lastUserMessage}`;
         try {
           const routerResponse = await groq.chat.completions.create({
-            model: "llama-3-8b-8192", // Fast, free router model
+            model: "llama-3.1-8b-instant", // Fast, free router model
             messages: [{ role: "system", content: routerPrompt }],
             response_format: { type: "json_object" },
             temperature: 0.1,
