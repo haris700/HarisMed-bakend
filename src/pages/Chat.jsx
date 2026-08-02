@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs, doc, getDoc, addDoc } from 'firebase/firestore';
-import { Bot, User, Send, Paperclip } from 'lucide-react';
+import { Bot, User, Send, Paperclip, ShieldCheck, Sparkles } from 'lucide-react';
 
 export default function Chat() {
   const [messages, setMessages] = useState([
@@ -180,46 +180,71 @@ export default function Chat() {
   return (
     <div style={{ paddingBottom: '160px' }}>
       
-      {/* 1. Header (Sticky) */}
+      {/* 1. Header (Sticky & High-Visibility Theme Support) */}
       <div className="page-header" style={{
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'space-between',
         gap: '12px',
         borderBottom: '1px solid var(--border)',
         padding: '14px 16px',
-        background: 'rgba(9, 13, 22, 0.85)',
-        backdropFilter: 'blur(20px)',
+        background: 'var(--bg-surface)',
         position: 'sticky',
         top: 0,
         zIndex: 10,
-        margin: '0 -16px 20px'
+        margin: '0 -16px 16px',
+        boxShadow: 'var(--shadow-sm)'
       }}>
-        <div style={{ background: 'var(--primary-dim)', border: '1px solid var(--primary-border)', borderRadius: '10px', padding: '8px' }}>
-          <Bot size={20} color="var(--primary)" />
-        </div>
-        <div>
-          <h1 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>HarisAI Assistant</h1>
-          <p style={{ fontSize: '0.72rem', color: 'var(--teal)', fontWeight: 600 }}>Clinical context active ✨</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ 
+            background: 'var(--teal-dim)', 
+            border: '1px solid var(--teal-border)', 
+            borderRadius: '12px', 
+            padding: '9px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <Bot size={22} color="var(--teal)" />
+          </div>
+          <div>
+            <h1 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+              HarisAI Assistant
+            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+              <span style={{ 
+                width: '7px', height: '7px', borderRadius: '50%', 
+                background: 'var(--green)', display: 'inline-block' 
+              }} />
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                RAG Engine & Medical Context Active
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* 2. Security Banner */}
       <div style={{
-        background: 'rgba(251,191,36,0.05)',
-        border: '1px solid rgba(251,191,36,0.15)',
-        borderRadius: '10px',
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border)',
+        borderRadius: '12px',
         padding: '10px 14px',
         marginBottom: '20px',
-        fontSize: '0.8rem',
-        color: 'var(--amber)',
+        fontSize: '0.78rem',
+        color: 'var(--text-secondary)',
         display: 'flex',
-        gap: '8px',
-        alignItems: 'center'
+        gap: '10px',
+        alignItems: 'center',
+        boxShadow: 'var(--shadow-sm)'
       }}>
-        <span>🛡️</span>
-        <span>Your data is processed securely (DPDP & HIPAA standards). AI advice is not a substitute for your doctor.</span>
+        <ShieldCheck size={18} color="var(--teal)" style={{ flexShrink: 0 }} />
+        <span style={{ lineHeight: 1.4 }}>
+          <strong>DPDP & HIPAA Compliant:</strong> AI advice is strictly grounded in your lab trends and profile records. Not a substitute for your nephrologist.
+        </span>
       </div>
 
-      {/* 2. Messages List */}
+      {/* 3. Messages List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
         {messages.map((m, i) => (
           <div key={i} style={{
@@ -229,7 +254,7 @@ export default function Chat() {
             flexDirection: m.role === 'user' ? 'row-reverse' : 'row',
             alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
             width: '100%',
-            maxWidth: '85%'
+            maxWidth: '88%'
           }}>
             <div style={{
               width: '32px',
@@ -247,17 +272,18 @@ export default function Chat() {
             </div>
             <div style={{
               background: m.role === 'user' 
-                ? 'linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(16,185,129,0.03) 100%)' 
-                : 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(99,102,241,0.03) 100%)',
-              border: m.role === 'user' ? '1px solid var(--teal-border)' : '1px solid var(--primary-border)',
+                ? 'var(--teal-dim)' 
+                : 'var(--bg-surface)',
+              border: m.role === 'user' ? '1px solid var(--teal-border)' : '1px solid var(--border)',
               padding: '12px 16px',
               borderRadius: '16px',
               borderTopRightRadius: m.role === 'user' ? 0 : '16px',
               borderTopLeftRadius: m.role === 'user' ? '16px' : 0,
               fontSize: '0.92rem',
               color: 'var(--text-primary)',
-              lineHeight: 1.5,
-              whiteSpace: 'pre-line'
+              lineHeight: 1.55,
+              whiteSpace: 'pre-line',
+              boxShadow: 'var(--shadow-sm)'
             }}>
               {m.content}
             </div>
@@ -269,13 +295,14 @@ export default function Chat() {
               <Bot size={16} />
             </div>
             <div style={{ 
-              background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(99,102,241,0.03) 100%)', 
+              background: 'var(--bg-surface)', 
               padding: '16px 20px', 
               borderRadius: '16px', 
               borderBottomLeftRadius: 0,
-              border: '1px solid var(--primary-border)',
+              border: '1px solid var(--border)',
               display: 'flex',
-              alignItems: 'center'
+              alignItems: 'center',
+              boxShadow: 'var(--shadow-sm)'
             }}>
               <div className="typing-indicator">
                 <div className="typing-dot"></div>
@@ -288,7 +315,7 @@ export default function Chat() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* 3. Input Area (Fixed above bottom-nav) */}
+      {/* 4. Input Area (Fixed above bottom-nav) */}
       <div style={{ 
         position: 'fixed',
         bottom: 'calc(58px + env(safe-area-inset-bottom))',
@@ -297,7 +324,7 @@ export default function Chat() {
         width: '100%',
         maxWidth: '680px',
         padding: '12px 16px', 
-        background: 'rgba(9, 13, 22, 0.95)', 
+        background: 'var(--bg-overlay)', 
         backdropFilter: 'blur(16px)',
         borderTop: '1px solid var(--border)',
         display: 'flex',
@@ -312,7 +339,8 @@ export default function Chat() {
           borderRadius: '24px', 
           border: '1px solid var(--border-strong)',
           padding: '4px 8px 4px 16px',
-          gap: '8px'
+          gap: '8px',
+          boxShadow: 'var(--shadow-sm)'
         }}>
           
           {/* File Input and Button */}
@@ -340,8 +368,6 @@ export default function Chat() {
               cursor: loading || uploading ? 'default' : 'pointer',
               transition: 'background 0.2s'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-raised)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
           >
             <Paperclip size={20} />
           </button>
@@ -367,7 +393,7 @@ export default function Chat() {
             disabled={!input.trim() || loading || uploading}
             style={{ 
               background: input.trim() && !loading && !uploading ? 'var(--teal)' : 'transparent', 
-              color: input.trim() && !loading && !uploading ? 'var(--text-inverse)' : 'var(--text-muted)', 
+              color: input.trim() && !loading && !uploading ? '#ffffff' : 'var(--text-muted)', 
               border: 'none', 
               width: '36px', 
               height: '36px', 
