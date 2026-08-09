@@ -6,6 +6,7 @@ import {
   FileText, Upload, Plus, Trash2, Save, Loader2, Check, Sparkles, RefreshCw 
 } from 'lucide-react';
 import { processFileForUpload } from '../utils/fileHelper';
+import ExtractionOverlay from '../components/ExtractionOverlay';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 
   (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://harismed-bakend.onrender.com');
@@ -212,6 +213,8 @@ export default function Profile() {
 
   return (
     <div className="fade-up" style={{ paddingBottom: '30px' }}>
+      {extracting && <ExtractionOverlay title="Extracting Prescription & Clinical Data" />}
+
       {/* Header */}
       <div className="page-header">
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:'10px' }}>
@@ -322,12 +325,13 @@ export default function Profile() {
             type="text" 
             className="field-input" 
             placeholder="Add condition (e.g., C3 Glomerulopathy)" 
+            disabled={saving || extracting}
             value={newDiagnosis}
             onChange={e => setNewDiagnosis(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && addDiagnosis()}
             style={{ padding:'8px 12px', fontSize:'0.85rem' }}
           />
-          <button onClick={addDiagnosis} className="btn btn-ghost" style={{ width:'auto', padding:'8px 14px', flexShrink:0 }}>
+          <button onClick={addDiagnosis} disabled={saving || extracting} className="btn btn-ghost" style={{ width:'auto', padding:'8px 14px', flexShrink:0 }}>
             <Plus size={16} />
           </button>
         </div>
@@ -362,6 +366,7 @@ export default function Profile() {
             type="text" 
             className="field-input" 
             placeholder="Medication name (e.g., Repace)" 
+            disabled={saving || extracting}
             value={newMedName}
             onChange={e => setNewMedName(e.target.value)}
             style={{ padding:'8px 12px', fontSize:'0.85rem' }}
@@ -370,12 +375,13 @@ export default function Profile() {
             type="text" 
             className="field-input" 
             placeholder="Dosage (e.g., 50mg 1-0-1)" 
+            disabled={saving || extracting}
             value={newMedDosage}
             onChange={e => setNewMedDosage(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && addMedication()}
             style={{ padding:'8px 12px', fontSize:'0.85rem' }}
           />
-          <button onClick={addMedication} className="btn btn-ghost" style={{ width:'auto', padding:'8px 14px', flexShrink:0 }}>
+          <button onClick={addMedication} disabled={saving || extracting} className="btn btn-ghost" style={{ width:'auto', padding:'8px 14px', flexShrink:0 }}>
             <Plus size={16} />
           </button>
         </div>
@@ -445,6 +451,7 @@ export default function Profile() {
         <textarea 
           className="field-input" 
           rows={7}
+          disabled={saving || extracting}
           placeholder="Enter instructions from your doctor or clinical summary..."
           value={clinicalNotes}
           onChange={e => setClinicalNotes(e.target.value)}

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
-  collection, query, orderBy, onSnapshot, doc, updateDoc
+  collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import {
   FileText, Image as ImageIcon, Calendar, Loader2, X,
-  Edit2, Check, Stethoscope, ChevronDown, ChevronUp, Search
+  Edit2, Check, Stethoscope, ChevronDown, ChevronUp, Search, Trash2, AlertTriangle
 } from 'lucide-react';
 
 // ── Document viewer ───────────────────────────────────────────────
@@ -222,6 +222,58 @@ function EditModal({ report, onClose }) {
   );
 }
 
+// ── Delete confirm modal ─────────────────────────────────────────
+function DeleteConfirmModal({ report, onClose, onConfirm }) {
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteDoc(doc(db, 'reports', report.id));
+      onConfirm();
+    } catch (err) {
+      alert("Failed to delete report: " + err.message);
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)',
+      zIndex: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
+    }}>
+      <div style={{
+        background: 'var(--bg-surface)', width: '100%', maxWidth: '400px',
+        borderRadius: '20px', border: '1px solid var(--border-strong)',
+        padding: '24px', textAlign: 'center', boxShadow: 'var(--shadow-lg)'
+      }}>
+        <div style={{
+          background: 'var(--rose-dim)', border: '1px solid rgba(244,63,94,0.3)',
+          width: '52px', height: '52px', borderRadius: '50%', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px'
+        }}>
+          <AlertTriangle size={26} color="var(--rose)" />
+        </div>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, marginBottom: '6px' }}>Delete Lab Report?</h3>
+        <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '20px' }}>
+          Are you sure you want to permanently delete <strong>"{report.tests}"</strong> from <strong>{new Date(report.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}</strong>? This action cannot be undone.
+        </p>
+
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn btn-ghost" onClick={onClose} disabled={deleting} style={{ flex: 1 }}>
+            Cancel
+          </button>
+          <button className="btn" onClick={handleDelete} disabled={deleting}
+            style={{ flex: 1, background: 'var(--rose)', color: '#ffffff' }}>
+            {deleting ? <Loader2 size={16} className="spin" /> : <Trash2 size={16} />}
+            <span>Delete</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Instant search logic ──────────────────────────────────────────
 function matchReport(report, term) {
   if (!term.trim()) return true;
@@ -244,6 +296,7 @@ export default function History() {
   const [viewer, setViewer]       = useState(null);
   const [editor, setEditor]       = useState(null);
   const [drView, setDrView]       = useState(null);
+  const [deleteConfirmReport, setDeleteConfirmReport] = useState(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -270,6 +323,13 @@ export default function History() {
       {viewer && <Viewer      report={viewer} onClose={() => setViewer(null)} />}
       {editor && <EditModal   report={editor} onClose={() => setEditor(null)} />}
       {drView && <DoctorView  report={drView} onClose={() => setDrView(null)} />}
+      {deleteConfirmReport && (
+        <DeleteConfirmModal
+          report={deleteConfirmReport}
+          onClose={() => setDeleteConfirmReport(null)}
+          onConfirm={() => setDeleteConfirmReport(null)}
+        />
+      )}
 
       {/* Header with inline search */}
       <div className="page-header">
@@ -388,6 +448,10 @@ export default function History() {
                         {report.isImage ? <ImageIcon size={14} color="var(--text-secondary)" /> : <FileText size={14} color="var(--text-secondary)" />}
                       </button>
                     )}
+                    <button title="Delete report" onClick={() => setDeleteConfirmReport(report)}
+                      style={{ background:'var(--rose-dim)', border:'1px solid rgba(244,63,94,0.3)', borderRadius:'7px', padding:'7px', cursor:'pointer' }}>
+                      <Trash2 size={14} color="var(--rose)" />
+                    </button>
                   </div>
                 </div>
 

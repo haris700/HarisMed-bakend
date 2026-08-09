@@ -206,10 +206,15 @@ Format the JSON exactly like this:
 }
 If the date is not found, use today's date (${new Date().toISOString().split('T')[0]}). If a value is not found, omit it. Do not include markdown formatting, just raw JSON.`;
 
-    const aiResult = await aiModel.generateContent([
-      { inlineData: { data: base64Data, mimeType } },
-      prompt
-    ]);
+    const aiResult = await aiModel.generateContent({
+      contents: [
+        { role: 'user', parts: [{ inlineData: { data: base64Data, mimeType } }, { text: prompt }] }
+      ],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.1
+      }
+    });
 
     const text = aiResult.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
     const extractedData = JSON.parse(text);
@@ -284,10 +289,15 @@ Return ONLY valid JSON matching this exact structure:
 }
 If any field is missing, use [] or "". Do not include markdown code block syntax. Return raw JSON only.`;
 
-    const aiResult = await aiModel.generateContent([
-      { inlineData: { data: base64Data, mimeType } },
-      prompt
-    ]);
+    const aiResult = await aiModel.generateContent({
+      contents: [
+        { role: 'user', parts: [{ inlineData: { data: base64Data, mimeType } }, { text: prompt }] }
+      ],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        temperature: 0.1
+      }
+    });
 
     const text = aiResult.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
     const extractedProfile = JSON.parse(text);

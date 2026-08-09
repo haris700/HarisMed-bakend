@@ -13,7 +13,7 @@ export async function processFileForUpload(file) {
       reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
-          const maxDim = 1600;
+          const maxDim = 1280;
           let width = img.width;
           let height = img.height;
 
@@ -33,7 +33,7 @@ export async function processFileForUpload(file) {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
           
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
           resolve({ fileData: compressedDataUrl, mimeType: 'image/jpeg' });
         };
         img.onerror = () => reject(new Error("Failed to process image file"));

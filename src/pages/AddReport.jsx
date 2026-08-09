@@ -3,6 +3,7 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { CheckCircle, Plus, UploadCloud, File, Loader2 } from 'lucide-react';
 import { processFileForUpload } from '../utils/fileHelper';
+import ExtractionOverlay from '../components/ExtractionOverlay';
 
 // Reference ranges for the 7 core markers
 const RANGES = {
@@ -184,6 +185,8 @@ export default function AddReport() {
 
   return (
     <div className="fade-up">
+      {scanning && <ExtractionOverlay title="Scanning Lab Report & Biomarkers" />}
+
       <div className="page-header">
         <h1 style={{ fontSize:'1.15rem', fontWeight:700 }}>Add Test Results</h1>
         <p style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginTop:'1px' }}>
@@ -231,17 +234,17 @@ export default function AddReport() {
         <div className="card" style={{ marginBottom:'14px', display:'flex', flexDirection:'column', gap:'14px' }}>
           <div>
             <label className="field-label">Date of Test *</label>
-            <input type="date" className="field-input" required
+            <input type="date" className="field-input" required disabled={scanning || submitting}
               value={date} onChange={e => setDate(e.target.value)} />
           </div>
           <div>
             <label className="field-label">Doctor / Clinic</label>
-            <input type="text" className="field-input" placeholder="e.g. Dr. Sajeesh Sivadas · MIMS Hospital"
+            <input type="text" className="field-input" placeholder="e.g. Dr. Sajeesh Sivadas · MIMS Hospital" disabled={scanning || submitting}
               value={doctor} onChange={e => setDoctor(e.target.value)} />
           </div>
           <div>
             <label className="field-label">Tests Done</label>
-            <input type="text" className="field-input" placeholder="e.g. Kidney Function Test, Urinalysis"
+            <input type="text" className="field-input" placeholder="e.g. Kidney Function Test, Urinalysis" disabled={scanning || submitting}
               value={tests} onChange={e => setTests(e.target.value)} />
           </div>
         </div>
@@ -260,6 +263,7 @@ export default function AddReport() {
                   type="number"
                   step="0.01"
                   className="field-input"
+                  disabled={scanning || submitting}
                   placeholder={f.placeholder}
                   value={markers[f.key] ?? ''}
                   onChange={e => setMarker(f.key, e.target.value)}
