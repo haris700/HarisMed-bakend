@@ -136,7 +136,7 @@ If a value is not found, omit it. Do not include markdown formatting, just raw J
         ]);
         const text = aiResult.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
         extractedData = JSON.parse(text);
-      } catch (e) {
+      } catch {
         console.log(`  ⚠️  Gemini extraction failed or rate limited, using defaults.`);
       }
 

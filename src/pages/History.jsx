@@ -306,6 +306,9 @@ export default function History() {
       snap.forEach(d => data.push({ id: d.id, ...d.data() }));
       setReports(data);
       setLoading(false);
+    }, err => {
+      console.error("Firestore reports error in History:", err);
+      setLoading(false);
     });
   }, []);
 

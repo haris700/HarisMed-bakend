@@ -6,7 +6,7 @@ import {
 import { Link } from 'react-router-dom';
 import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Loader2, FileText, ChevronRight, TrendingUp, TrendingDown, Minus, ArrowRight, User, Stethoscope, Pill } from 'lucide-react';
+import { Loader2, FileText, ChevronRight, TrendingUp, TrendingDown, Minus, ArrowRight, Stethoscope } from 'lucide-react';
 
 // ── Reference ranges for common kidney markers ──────────────────
 const RANGES = {
@@ -113,6 +113,9 @@ export default function Dashboard() {
       snap.forEach(d => data.push({ id: d.id, ...d.data() }));
       setReports(data);
       setLoading(false);
+    }, err => {
+      console.error("Firestore reports error:", err);
+      setLoading(false);
     });
 
     async function loadProfile() {
@@ -162,7 +165,6 @@ export default function Dashboard() {
 
   const recentReports = useMemo(() => [...reports].reverse().slice(0, 4), [reports]);
   const r = RANGES[activeKey] || {};
-  const trendData = chartData;
 
   return (
     <div className="fade-up">
@@ -174,9 +176,10 @@ export default function Dashboard() {
             <p style={{ fontSize:'0.78rem', color:'var(--text-muted)', marginTop:'1px' }}>Kidney Health Tracker</p>
           </div>
           <Link to="/add" style={{
-            background:'var(--teal)', color:'#111318',
+            background:'var(--teal)', color:'#ffffff',
             padding:'8px 14px', borderRadius:'100px',
-            fontSize:'0.8rem', fontWeight:700, textDecoration:'none'
+            fontSize:'0.8rem', fontWeight:700, textDecoration:'none',
+            whiteSpace:'nowrap', flexShrink:0, display:'inline-flex', alignItems:'center', gap:'4px'
           }}>
             + Add Test
           </Link>
@@ -190,24 +193,26 @@ export default function Dashboard() {
       ) : (
         <>
           {/* ── Patient Clinical Profile Quick Access ── */}
-          <div className="card" style={{ marginBottom:'18px', padding:'14px 18px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
-              <div style={{ background:'var(--teal-dim)', border:'1px solid var(--teal-border)', borderRadius:'10px', padding:'9px', color:'var(--teal)' }}>
+          <div className="card" style={{ marginBottom:'18px', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'12px' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'12px', minWidth:0, flex:1 }}>
+              <div style={{ background:'var(--teal-dim)', border:'1px solid var(--teal-border)', borderRadius:'12px', padding:'10px', color:'var(--teal)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                 <Stethoscope size={20} />
               </div>
-              <div>
-                <span style={{ fontSize:'0.82rem', fontWeight:700, color:'var(--text-primary)', display:'block' }}>Clinical Profile & Prescriptions</span>
-                <span style={{ fontSize:'0.75rem', color:'var(--text-muted)' }}>
+              <div style={{ minWidth:0, flex:1 }}>
+                <span style={{ fontSize:'0.84rem', fontWeight:700, color:'var(--text-primary)', display:'block', lineHeight:1.25 }}>Clinical Profile & Prescriptions</span>
+                <span style={{ fontSize:'0.75rem', color:'var(--text-muted)', display:'block', marginTop:'2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                   {profile?.diagnoses?.length ? `${profile.diagnoses.join(', ')}` : 'Diagnoses & Medications'}
                   {profile?.medications?.length ? ` · ${profile.medications.length} active meds` : ''}
                 </span>
               </div>
             </div>
             <Link to="/profile" style={{
-              background:'var(--bg-raised)', border:'1px solid var(--border-strong)', color:'var(--text-primary)',
-              padding:'6px 14px', borderRadius:'100px', fontSize:'0.75rem', fontWeight:700, textDecoration:'none'
+              background:'var(--teal-dim)', border:'1px solid var(--teal-border)', color:'var(--teal)',
+              padding:'7px 14px', borderRadius:'100px', fontSize:'0.76rem', fontWeight:600, textDecoration:'none',
+              whiteSpace:'nowrap', flexShrink:0, display:'inline-flex', alignItems:'center', gap:'4px',
+              transition:'all 0.2s ease'
             }}>
-              View Profile →
+              View Profile <ArrowRight size={14} />
             </Link>
           </div>
 

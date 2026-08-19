@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { 
-  User, Stethoscope, Pill, AlertTriangle, Utensils, 
+  Stethoscope, Pill, AlertTriangle, Utensils, 
   FileText, Upload, Plus, Trash2, Save, Loader2, Check, Sparkles, RefreshCw 
 } from 'lucide-react';
 import { processFileForUpload } from '../utils/fileHelper';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
 import { collection, getDocs, doc, getDoc, addDoc } from 'firebase/firestore';
-import { Bot, User, Send, Paperclip, ShieldCheck, Sparkles } from 'lucide-react';
+import { Bot, User, Send, Paperclip, ShieldCheck } from 'lucide-react';
 
 export default function Chat() {
   const [messages, setMessages] = useState([
