@@ -5,29 +5,31 @@ import { CheckCircle, Plus, UploadCloud, File, Loader2 } from 'lucide-react';
 import { processFileForUpload } from '../utils/fileHelper';
 import ExtractionOverlay from '../components/ExtractionOverlay';
 
-// Reference ranges for the 7 core markers
+// Reference ranges for the core markers
 const RANGES = {
-  pcratio:      { low: 0,    high: 0.3,   unit: 'mg/mg',  label: 'Urine PCR' },
-  creatinine:   { low: 0.6,  high: 1.2,   unit: 'mg/dL',  label: 'Creatinine' },
-  egfr:         { low: 60,   high: 120,   unit: 'mL/min', label: 'eGFR' },
-  bun:          { low: 7,    high: 20,    unit: 'mg/dL',  label: 'BUN / Urea' },
-  urineProtein: { low: 0,    high: 12,    unit: 'mg/dL',  label: 'Urine Protein' },
-  potassium:    { low: 3.5,  high: 5.0,   unit: 'mEq/L',  label: 'Potassium' },
-  uricAcid:     { low: 3.5,  high: 7.2,   unit: 'mg/dL',  label: 'Uric Acid' },
-  urineRbc:     { low: 0,    high: 5,     unit: '/hpf',   label: 'Urine RBC' },
-  cholesterol:  { low: 0,    high: 200,   unit: 'mg/dL',  label: 'Total Cholesterol' },
+  pcratio:              { low: 0,    high: 0.3,   unit: 'mg/mg',  label: 'Urine PCR' },
+  creatinine:           { low: 0.6,  high: 1.2,   unit: 'mg/dL',  label: 'Creatinine' },
+  egfr:                 { low: 60,   high: 120,   unit: 'mL/min', label: 'eGFR' },
+  bun:                  { low: 7,    high: 20,    unit: 'mg/dL',  label: 'BUN / Urea' },
+  urineProtein:         { low: 0,    high: 12,    unit: 'mg/dL',  label: 'Urine Protein (Conc)' },
+  urineDipstickProtein: { low: null, high: null,  unit: 'Grade',  label: 'Urine Protein (Dipstick)' },
+  potassium:            { low: 3.5,  high: 5.0,   unit: 'mEq/L',  label: 'Potassium' },
+  uricAcid:             { low: 3.5,  high: 7.2,   unit: 'mg/dL',  label: 'Uric Acid' },
+  urineRbc:             { low: 0,    high: 5,     unit: '/hpf',   label: 'Urine RBC' },
+  cholesterol:          { low: 0,    high: 200,   unit: 'mg/dL',  label: 'Total Cholesterol' },
 };
 
 const CORE_FIELDS = [
-  { key: 'pcratio',      label: 'Urine PCR (Ratio)',   unit: 'mg/mg',  placeholder: 'e.g. 0.3' },
-  { key: 'creatinine',   label: 'Creatinine (Serum)',  unit: 'mg/dL',  placeholder: 'e.g. 1.1' },
-  { key: 'egfr',         label: 'eGFR',                unit: 'mL/min', placeholder: 'e.g. 72' },
-  { key: 'bun',          label: 'BUN / Urea',          unit: 'mg/dL',  placeholder: 'e.g. 15' },
-  { key: 'urineProtein', label: 'Urine Protein',       unit: 'mg/dL',  placeholder: 'e.g. 12' },
-  { key: 'potassium',    label: 'Potassium',           unit: 'mEq/L',  placeholder: 'e.g. 4.1' },
-  { key: 'uricAcid',     label: 'Uric Acid',           unit: 'mg/dL',  placeholder: 'e.g. 6.0' },
-  { key: 'urineRbc',     label: 'Urine RBC',           unit: '/hpf',   placeholder: 'e.g. 2' },
-  { key: 'cholesterol',  label: 'Total Cholesterol',   unit: 'mg/dL',  placeholder: 'e.g. 180' },
+  { key: 'pcratio',              label: 'Urine PCR (Ratio)',         unit: 'mg/mg',  placeholder: 'e.g. 0.3' },
+  { key: 'creatinine',           label: 'Creatinine (Serum)',        unit: 'mg/dL',  placeholder: 'e.g. 1.1' },
+  { key: 'egfr',                 label: 'eGFR',                      unit: 'mL/min', placeholder: 'e.g. 72' },
+  { key: 'bun',                  label: 'BUN / Urea',                unit: 'mg/dL',  placeholder: 'e.g. 15' },
+  { key: 'urineProtein',         label: 'Urine Protein (Conc)',      unit: 'mg/dL',  placeholder: 'e.g. 230' },
+  { key: 'urineDipstickProtein', label: 'Urine Protein (Dipstick)',  unit: 'Grade',  placeholder: 'e.g. 2+' },
+  { key: 'potassium',            label: 'Potassium',                 unit: 'mEq/L',  placeholder: 'e.g. 4.1' },
+  { key: 'uricAcid',             label: 'Uric Acid',                 unit: 'mg/dL',  placeholder: 'e.g. 6.0' },
+  { key: 'urineRbc',             label: 'Urine RBC (Microscopy)',    unit: '/hpf',   placeholder: 'e.g. 10-15' },
+  { key: 'cholesterol',          label: 'Total Cholesterol',         unit: 'mg/dL',  placeholder: 'e.g. 180' },
 ];
 
 export default function AddReport() {
@@ -75,10 +77,12 @@ export default function AddReport() {
       if (extracted.date) setDate(extracted.date);
       if (extracted.tests) setTests(extracted.tests.join(', '));
       
-      // Load markers into form inputs
+      // Load markers into form inputs (prefer exact detail string e.g. "10-15" or "2+")
       const newMarkers = {};
       CORE_FIELDS.forEach(f => {
-        if (extracted.markers[f.key] !== undefined) {
+        if (extracted.markers_detail?.[f.key]?.value !== undefined) {
+          newMarkers[f.key] = extracted.markers_detail[f.key].value;
+        } else if (extracted.markers?.[f.key] !== undefined) {
           newMarkers[f.key] = extracted.markers[f.key];
         }
       });
@@ -119,23 +123,42 @@ export default function AddReport() {
       CORE_FIELDS.forEach(f => {
         const valStr = markers[f.key];
         if (valStr !== '' && valStr != null) {
-          const val = parseFloat(valStr);
-          if (!isNaN(val)) {
-            markerPayload[f.key] = val;
-
-            // Generate detail metadata using reference ranges
-            const range = RANGES[f.key];
-            let flag = 'Normal';
-            if (range.high && val > range.high) flag = 'High';
-            if (range.low && val < range.low) flag = 'Low';
-
-            detailPayload[f.key] = {
-              value: val,
-              unit: range.unit,
-              flag: flag,
-              reference_range: `${range.low}-${range.high}`
-            };
+          let numericVal = NaN;
+          if (typeof valStr === 'number') {
+            numericVal = valStr;
+          } else if (typeof valStr === 'string') {
+            if (valStr.includes('-')) {
+              const parts = valStr.split('-').map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
+              if (parts.length === 2) numericVal = (parts[0] + parts[1]) / 2;
+              else if (parts.length === 1) numericVal = parts[0];
+            } else if (valStr.includes('+')) {
+              numericVal = parseFloat(valStr);
+            } else {
+              numericVal = parseFloat(valStr);
+            }
           }
+
+          if (!isNaN(numericVal)) {
+            markerPayload[f.key] = numericVal;
+          } else {
+            markerPayload[f.key] = valStr;
+          }
+
+          // Generate detail metadata using reference ranges
+          const range = RANGES[f.key] || {};
+          let flag = 'Normal';
+          if (range.high && numericVal > range.high) flag = 'High';
+          if (range.low && numericVal < range.low) flag = 'Low';
+          if (f.key === 'urineDipstickProtein' && valStr && !['nil', 'negative', '0', '-'].includes(String(valStr).toLowerCase())) {
+            flag = 'High';
+          }
+
+          detailPayload[f.key] = {
+            value: valStr,
+            unit: range.unit || '',
+            flag: flag,
+            reference_range: range.high ? `${range.low}-${range.high}` : (f.key === 'urineDipstickProtein' ? 'Negative' : (f.key === 'urineProtein' ? '<12' : ''))
+          };
         }
       });
 
@@ -260,8 +283,7 @@ export default function AddReport() {
                   <span style={{ color:'var(--text-muted)', fontWeight:400 }}>{f.unit}</span>
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
+                  type="text"
                   className="field-input"
                   disabled={scanning || submitting}
                   placeholder={f.placeholder}

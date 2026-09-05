@@ -43,13 +43,16 @@ function Viewer({ report, onClose }) {
 
 // ── Doctor summary view ───────────────────────────────────────────
 const MARKER_META = {
-  pcratio:     { label:'Urine PCR',            unit:'mg/mg'  },
-  creatinine:  { label:'Creatinine',           unit:'mg/dL'  },
-  egfr:        { label:'eGFR',                  unit:'mL/min' },
-  bun:         { label:'BUN / Urea',            unit:'mg/dL'  },
-  urineProtein:{ label:'Urine Protein',         unit:'mg/dL'  },
-  potassium:   { label:'Potassium',             unit:'mEq/L'  },
-  uricAcid:    { label:'Uric Acid',             unit:'mg/dL'  },
+  pcratio:              { label:'Urine PCR',               unit:'mg/mg'  },
+  creatinine:           { label:'Creatinine',              unit:'mg/dL'  },
+  egfr:                 { label:'eGFR',                    unit:'mL/min' },
+  bun:                  { label:'BUN / Urea',              unit:'mg/dL'  },
+  urineProtein:         { label:'Urine Protein (Conc)',    unit:'mg/dL'  },
+  urineDipstickProtein: { label:'Urine Protein (Dipstick)',unit:''       },
+  potassium:            { label:'Potassium',               unit:'mEq/L'  },
+  uricAcid:             { label:'Uric Acid',               unit:'mg/dL'  },
+  urineRbc:             { label:'Urine RBC',               unit:'/hpf'   },
+  cholesterol:          { label:'Total Cholesterol',       unit:'mg/dL'  },
 };
 
 function DoctorView({ report, onClose }) {
@@ -204,7 +207,7 @@ function EditModal({ report, onClose }) {
               <div key={f.key}>
                 <label className="field-label">{f.label}{f.unit && ` (${f.unit})`}</label>
                 <input
-                  type={f.key === 'ana' ? 'text' : 'number'} step="0.01"
+                  type={['ana', 'urineRbc', 'urineDipstickProtein'].includes(f.key) ? 'text' : 'number'} step="0.01"
                   className="field-input" placeholder="—"
                   value={markers[f.key] ?? ''}
                   onChange={e => setM(f.key, e.target.value)}
