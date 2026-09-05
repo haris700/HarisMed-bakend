@@ -26,7 +26,14 @@ const geminiKey = (process.env.GEMINI_API_KEY || "").replace(/"/g, '');
 const genAI = new GoogleGenerativeAI(geminiKey);
 
 async function generateWithGemini(contents, generationConfig = {}) {
-  const models = ['gemini-3.7-flash', 'gemini-flash-latest', 'gemini-3.5-flash', 'gemini-3.6-flash'];
+  const models = [
+    'gemini-3.5-flash',
+    'gemini-flash-latest',
+    'gemini-3.5-flash-lite',
+    'gemini-flash-lite-latest',
+    'gemini-3.7-flash',
+    'gemini-3.6-flash'
+  ];
   let lastError = null;
   for (const modelName of models) {
     try {
@@ -39,6 +46,7 @@ async function generateWithGemini(contents, generationConfig = {}) {
           ...generationConfig
         }
       });
+      console.log(`✅ Extraction succeeded using model: ${modelName}`);
       return result;
     } catch (err) {
       console.warn(`⚠️ Model ${modelName} failed (${err.message.substring(0, 100)}), trying fallback...`);
