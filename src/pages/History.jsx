@@ -48,7 +48,7 @@ const MARKER_META = {
   egfr:                 { label:'eGFR',                    unit:'mL/min' },
   bun:                  { label:'BUN / Urea',              unit:'mg/dL'  },
   urineProtein:         { label:'Urine Protein (Conc)',    unit:'mg/dL'  },
-  urineDipstickProtein: { label:'Urine Protein (Dipstick)',unit:''       },
+  urineDipstickProtein: { label:'Urine Protein',           unit:''       },
   potassium:            { label:'Potassium',               unit:'mEq/L'  },
   uricAcid:             { label:'Uric Acid',               unit:'mg/dL'  },
   urineRbc:             { label:'Urine RBC',               unit:'/hpf'   },

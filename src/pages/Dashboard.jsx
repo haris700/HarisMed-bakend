@@ -15,7 +15,7 @@ const RANGES = {
   egfr:                 { low: 60,   high: 120,   unit: 'mL/min',label: 'eGFR' },
   bun:                  { low: 7,    high: 20,    unit: 'mg/dL', label: 'BUN / Urea' },
   urineProtein:         { low: 0,    high: 12,    unit: 'mg/dL', label: 'Urine Protein (Conc)' },
-  urineDipstickProtein: { low: null, high: null,  unit: '',      label: 'Urine Protein (Dipstick)' },
+  urineDipstickProtein: { low: null, high: null,  unit: 'Grade', label: 'Urine Protein' },
   urineCreat:           { low: 30,   high: 125,   unit: 'mg/dL', label: 'Urine Creatinine' },
   ana:                  { low: null, high: null,  unit: '',      label: 'ANA' },
   chf:                  { low: null, high: 100,   unit: 'pg/mL', label: 'BNP (CHF)' },
@@ -32,10 +32,19 @@ const RANGES = {
 };
 
 function getRangeStatus(key, val) {
+  if (key === 'urineDipstickProtein') {
+    if (!val) return 'normal';
+    const s = String(val).toLowerCase();
+    if (s.includes('+') || s.includes('high') || s.includes('pos')) return 'high';
+    return 'normal';
+  }
   const r = RANGES[key];
   if (!r || val == null) return 'normal';
-  if (r.high && val > r.high) return 'high';
-  if (r.low  && val < r.low)  return 'low';
+  const num = typeof val === 'number' ? val : parseFloat(val);
+  if (!isNaN(num)) {
+    if (r.high != null && num > r.high) return 'high';
+    if (r.low != null && num < r.low) return 'low';
+  }
   return 'normal';
 }
 
@@ -90,15 +99,16 @@ const ChartTooltip = ({ active, payload, label, unit }) => {
 };
 
 const TREND_MARKERS = [
-  { key:'pcratio',      color:'#f97316' },  // PCR — MOST IMPORTANT
-  { key:'creatinine',   color:'#2dd4bf' },
-  { key:'egfr',         color:'#a78bfa' },  // Added eGFR
-  { key:'urineProtein', color:'#fb923c' },
-  { key:'bun',          color:'#60a5fa' },
-  { key:'potassium',    color:'#34d399' },
-  { key:'uricAcid',     color:'#f59e0b' },
-  { key:'urineRbc',     color:'#ef4444' },
-  { key:'cholesterol',  color:'#facc15' },
+  { key:'pcratio',              color:'#f97316' },  // PCR — MOST IMPORTANT
+  { key:'creatinine',           color:'#2dd4bf' },
+  { key:'egfr',                 color:'#a78bfa' },  // eGFR
+  { key:'urineProtein',         color:'#fb923c' },  // Urine Protein (Conc)
+  { key:'urineDipstickProtein', color:'#ec4899' },  // Urine Protein (Routine)
+  { key:'bun',                  color:'#60a5fa' },
+  { key:'potassium',            color:'#34d399' },
+  { key:'uricAcid',             color:'#f59e0b' },
+  { key:'urineRbc',             color:'#ef4444' },
+  { key:'cholesterol',          color:'#facc15' },
 ];
 
 export default function Dashboard() {
@@ -137,8 +147,8 @@ export default function Dashboard() {
     const out = {};
     const rev = [...reports].reverse();
     for (const m of TREND_MARKERS) {
-      const found = rev.find(r => r.markers?.[m.key] != null);
-      out[m.key] = found?.markers?.[m.key] ?? null;
+      const found = rev.find(r => r.markers?.[m.key] != null || r.markers_detail?.[m.key]?.value != null);
+      out[m.key] = found?.markers_detail?.[m.key]?.value ?? found?.markers?.[m.key] ?? null;
     }
     return out;
   }, [reports]);
@@ -281,7 +291,7 @@ export default function Dashboard() {
           {/* ── Latest Values Grid ─── */}
           <p className="section-title">Latest Results</p>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'28px' }}>
-            {TREND_MARKERS.filter(m => latest[m.key] != null).slice(0, 8).map(m => (
+            {TREND_MARKERS.filter(m => latest[m.key] != null).map(m => (
               <div
                 key={m.key}
                 onClick={() => setActiveKey(m.key)}
