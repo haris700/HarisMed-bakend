@@ -216,8 +216,15 @@ If the date is not found, use today's date (${new Date().toISOString().split('T'
       }
     });
 
-    const text = aiResult.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
-    const extractedData = JSON.parse(text);
+    const rawText = aiResult.response.text().trim();
+    let extractedData = {};
+    try {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      extractedData = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(rawText);
+    } catch (parseErr) {
+      console.error("JSON parse error on Gemini output:", rawText, parseErr);
+      extractedData = {};
+    }
 
     // Format markers for the Hybrid Data Model
     const rawMarkers = {};
@@ -313,8 +320,14 @@ If any field is missing, use [] or "". Do not include markdown code block syntax
       }
     });
 
-    const text = aiResult.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
-    const extractedProfile = JSON.parse(text);
+    const rawText = aiResult.response.text().trim();
+    let extractedProfile = {};
+    try {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      extractedProfile = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(rawText);
+    } catch (parseErr) {
+      console.error("JSON parse error on Gemini profile output:", rawText, parseErr);
+    }
 
     res.json(extractedProfile);
   } catch (error) {
