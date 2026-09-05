@@ -213,30 +213,37 @@ app.post('/api/extract', async (req, res) => {
       ? fileData.split('base64,')[1] 
       : fileData;
 
-    const prompt = `You are an expert medical data extractor. Extract the date of the test and key biomarkers from this medical report (Blood panels, Kidney Function Tests, Urine Routine & Microscopy Examination) into a strict JSON object.
-CRITICAL: You MUST use the exact following keys inside the "markers" object if found:
-- 'pcratio' (Urine Protein Creatinine Ratio / UPCR)
-- 'creatinine' (Serum Creatinine)
-- 'egfr' (Estimated Glomerular Filtration Rate)
-- 'bun' (Blood Urea Nitrogen / Urea)
-- 'urineProtein' (Urine Protein / Albumin in Dipstick or Quantitative, e.g. "2+", "1+", "Trace", "100")
-- 'potassium' (Serum Potassium)
-- 'uricAcid' (Serum Uric Acid)
-- 'urineRbc' (RBC / Red Blood Cells in Urine Microscopic Examination, e.g. "10-15", "0-2", "8-10")
-- 'cholesterol' (Total Cholesterol or Lipid Profile)
+    const prompt = `You are an expert medical data extractor. Extract the date of the test and key biomarkers from this medical report (Blood panels, Kidney Function Tests, Urine Routine & Microscopy Examination, and Spot Urine Protein-Creatinine Ratio) into a strict JSON object.
+
+CRITICAL BIOMARKER MAPPING RULES:
+- 'pcratio': "URINE PROTEIN CREATININE RATIO" (e.g. 2.44 mg/mg, reference "0-0.3", flag "High").
+- 'urineProtein': Quantitative "URINE PROTEIN CONCENTRATION" in mg/dL (e.g. 230 mg/dL, reference "<12", flag "High"). Do NOT use dipstick grades here if quantitative mg/dL concentration is available.
+- 'urineCreatinine': "URINE CREATININE" in mg/dL (e.g. 94.2 mg/dL).
+- 'creatinine': Serum Creatinine in mg/dL (e.g. 1.1 or 1.4 mg/dL).
+- 'egfr': Estimated Glomerular Filtration Rate (e.g. 72 mL/min).
+- 'bun': Blood Urea Nitrogen / Urea in mg/dL (e.g. 43 or 15 mg/dL).
+- 'potassium': Serum Potassium in mEq/L (e.g. 4.4 mEq/L).
+- 'uricAcid': Serum Uric Acid in mg/dL (e.g. 6.51 mg/dL).
+- 'urineRbc': RBC / Red Blood Cells in Urine Microscopic Examination (e.g. "10-15", "0-2", "8-10" /hpf, reference "0-5", flag "High").
+- 'cholesterol': Total Cholesterol in mg/dL (e.g. 233 or 180 mg/dL).
+- 'urineDipstickProtein': Qualitative / Dipstick Urine Protein under Chemical Examination (e.g. "2+", "1+", "Trace", "Negative").
 
 Format the JSON exactly like this:
 {
   "date": "YYYY-MM-DD",
-  "test_types": ["Urine Routine Examination", "Urinalysis"],
+  "test_types": ["Protein - Creatinine Ratio, Urine", "Urine Routine Examination", "Kidney Function Test"],
   "markers": {
+    "pcratio": { "value": 2.44, "unit": "mg/mg", "reference_range": "0-0.3", "flag": "High" },
+    "urineProtein": { "value": 230, "unit": "mg/dl", "reference_range": "<12", "flag": "High" },
     "urineRbc": { "value": "10-15", "unit": "/hpf", "reference_range": "0-5", "flag": "High" },
-    "urineProtein": { "value": "2+", "unit": "", "reference_range": "Negative", "flag": "High" },
-    "creatinine": { "value": 1.4, "unit": "mg/dL", "reference_range": "0.7-1.2", "flag": "High" },
-    "pcratio": { "value": 2.6, "unit": "mg/mg", "reference_range": "0-0.3", "flag": "High" }
+    "creatinine": { "value": 1.1, "unit": "mg/dL", "reference_range": "0.7-1.2", "flag": "Normal" },
+    "bun": { "value": 43, "unit": "mg/dL", "reference_range": "7-20", "flag": "High" },
+    "potassium": { "value": 4.4, "unit": "mEq/L", "reference_range": "3.5-5.0", "flag": "Normal" },
+    "uricAcid": { "value": 6.51, "unit": "mg/dL", "reference_range": "3.5-7.2", "flag": "Normal" },
+    "cholesterol": { "value": 233, "unit": "mg/dL", "reference_range": "0-200", "flag": "High" }
   }
 }
-If the date is not found, use today's date (${new Date().toISOString().split('T')[0]}). If a value is a range (like "10-15" or "2-4"), keep the exact range string in "value". Do not include markdown formatting, just raw JSON.`;
+If the date is not found, use today's date (${new Date().toISOString().split('T')[0]}). If a value is a range (like "10-15"), keep the exact range string in "value". Do not include markdown formatting, just raw JSON.`;
 
     const aiResult = await generateWithGemini([
       { role: 'user', parts: [{ inlineData: { data: base64Data, mimeType } }, { text: prompt }] }
@@ -270,8 +277,11 @@ If the date is not found, use today's date (${new Date().toISOString().split('T'
       if (['bun', 'urea', 'bloodurea', 'bloodureanitrogen', 'surea'].includes(clean)) {
         return 'bun';
       }
-      if (['urineprotein', 'proteinurine', 'protein', 'proteins', 'urinealbumin', 'albuminurine', 'urinedipstickprotein', 'dipstickprotein'].includes(clean)) {
+      if (['urineprotein', 'urineproteinconcentration', 'proteinconcentration', 'urineproteinquant', 'spoturineprotein', 'totalurineprotein', 'urinetotalprotein'].includes(clean)) {
         return 'urineProtein';
+      }
+      if (['urinedipstickprotein', 'dipstickprotein', 'chemicalprotein', 'proteins', 'protein', 'urinealbumin', 'albuminurine'].includes(clean)) {
+        return 'urineDipstickProtein';
       }
       if (['potassium', 'serumpotassium', 'k', 'spotassium'].includes(clean)) {
         return 'potassium';
