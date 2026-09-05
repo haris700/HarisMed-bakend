@@ -21,10 +21,32 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Initialize Groq
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// Initialize Gemini
+// Initialize Gemini with Resilient Multi-Model Fallback
 const geminiKey = (process.env.GEMINI_API_KEY || "").replace(/"/g, '');
 const genAI = new GoogleGenerativeAI(geminiKey);
-const aiModel = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
+
+async function generateWithGemini(contents, generationConfig = {}) {
+  const models = ['gemini-3.7-flash', 'gemini-flash-latest', 'gemini-3.5-flash', 'gemini-3.6-flash'];
+  let lastError = null;
+  for (const modelName of models) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent({
+        contents,
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.1,
+          ...generationConfig
+        }
+      });
+      return result;
+    } catch (err) {
+      console.warn(`⚠️ Model ${modelName} failed (${err.message.substring(0, 100)}), trying fallback...`);
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
 
 // The RAG Endpoint
 app.post('/api/chat', async (req, res) => {
@@ -206,15 +228,9 @@ Format the JSON exactly like this:
 }
 If the date is not found, use today's date (${new Date().toISOString().split('T')[0]}). If a value is not found, omit it. Do not include markdown formatting, just raw JSON.`;
 
-    const aiResult = await aiModel.generateContent({
-      contents: [
-        { role: 'user', parts: [{ inlineData: { data: base64Data, mimeType } }, { text: prompt }] }
-      ],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        temperature: 0.1
-      }
-    });
+    const aiResult = await generateWithGemini([
+      { role: 'user', parts: [{ inlineData: { data: base64Data, mimeType } }, { text: prompt }] }
+    ]);
 
     const rawText = aiResult.response.text().trim();
     let extractedData = {};
@@ -310,15 +326,9 @@ Return ONLY valid JSON matching this exact structure:
 }
 If any field is missing, use [] or "". Do not include markdown code block syntax. Return raw JSON only.`;
 
-    const aiResult = await aiModel.generateContent({
-      contents: [
-        { role: 'user', parts: [{ inlineData: { data: base64Data, mimeType } }, { text: prompt }] }
-      ],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        temperature: 0.1
-      }
-    });
+    const aiResult = await generateWithGemini([
+      { role: 'user', parts: [{ inlineData: { data: base64Data, mimeType } }, { text: prompt }] }
+    ]);
 
     const rawText = aiResult.response.text().trim();
     let extractedProfile = {};
