@@ -41,7 +41,7 @@ app.post('/api/chat', async (req, res) => {
         const routerPrompt = `Analyze the medical question and classify it into ONE category: RENAL, LIVER, BLOOD, METABOLIC, or GENERAL. Output ONLY valid JSON: {"intent": "CATEGORY"}\nQuestion: ${lastUserMessage}`;
         try {
           const routerResponse = await groq.chat.completions.create({
-            model: "llama-3.1-8b-instant", // Fast, free router model
+            model: "openai/gpt-oss-20b", // Fast router model
             messages: [{ role: "system", content: routerPrompt }],
             response_format: { type: "json_object" },
             temperature: 0.1,
@@ -164,9 +164,9 @@ CRITICAL RULES:
       }))
     ];
 
-    // Call the Groq API (using the blazing fast Llama 3.3 70B model)
+    // Call the Groq API (using openai/gpt-oss-120b)
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-oss-120b",
       messages: apiMessages,
       temperature: 0.2, // Keep it factual and grounded
     });
@@ -223,15 +223,29 @@ If the date is not found, use today's date (${new Date().toISOString().split('T'
     const rawMarkers = {};
     const markersDetail = {};
     for (const [k, v] of Object.entries(extractedData.markers || {})) {
-      const val = parseFloat(v.value);
-      if (!isNaN(val)) {
-        rawMarkers[k] = val;
+      let numericVal = NaN;
+      if (typeof v.value === 'number') {
+        numericVal = v.value;
+      } else if (typeof v.value === 'string') {
+        if (v.value.includes('-')) {
+          const parts = v.value.split('-').map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
+          if (parts.length === 2) {
+            numericVal = (parts[0] + parts[1]) / 2; // Midpoint for charting
+          } else if (parts.length === 1) {
+            numericVal = parts[0];
+          }
+        } else {
+          numericVal = parseFloat(v.value);
+        }
+      }
+      if (!isNaN(numericVal)) {
+        rawMarkers[k] = numericVal;
       }
       markersDetail[k] = {
         value: v.value,
         unit: v.unit || '',
-        flag: v.flag || 'Normal',
-        reference_range: v.reference_range || 'Unknown'
+        flag: v.flag || (numericVal > 5 && k === 'urineRbc' ? 'High' : 'Normal'),
+        reference_range: v.reference_range || '0-5'
       };
     }
 
