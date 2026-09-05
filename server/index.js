@@ -213,20 +213,30 @@ app.post('/api/extract', async (req, res) => {
       ? fileData.split('base64,')[1] 
       : fileData;
 
-    const prompt = `You are an expert medical data extractor. Extract the date of the test and key biomarkers from this medical report into a strict JSON object.
-CRITICAL: You MUST use the exact following keys inside the "markers" object if found: 'pcratio' (Urine Protein Creatinine Ratio), 'creatinine', 'egfr', 'bun' (Urea), 'urineProtein', 'potassium', 'uricAcid', 'urineRbc' (RBC in Urine Microscopy), and 'cholesterol' (Total Cholesterol or Lipid Profile).
+    const prompt = `You are an expert medical data extractor. Extract the date of the test and key biomarkers from this medical report (Blood panels, Kidney Function Tests, Urine Routine & Microscopy Examination) into a strict JSON object.
+CRITICAL: You MUST use the exact following keys inside the "markers" object if found:
+- 'pcratio' (Urine Protein Creatinine Ratio / UPCR)
+- 'creatinine' (Serum Creatinine)
+- 'egfr' (Estimated Glomerular Filtration Rate)
+- 'bun' (Blood Urea Nitrogen / Urea)
+- 'urineProtein' (Urine Protein / Albumin in Dipstick or Quantitative, e.g. "2+", "1+", "Trace", "100")
+- 'potassium' (Serum Potassium)
+- 'uricAcid' (Serum Uric Acid)
+- 'urineRbc' (RBC / Red Blood Cells in Urine Microscopic Examination, e.g. "10-15", "0-2", "8-10")
+- 'cholesterol' (Total Cholesterol or Lipid Profile)
+
 Format the JSON exactly like this:
 {
   "date": "YYYY-MM-DD",
-  "test_types": ["Blood Panel", "Urinalysis"],
+  "test_types": ["Urine Routine Examination", "Urinalysis"],
   "markers": {
+    "urineRbc": { "value": "10-15", "unit": "/hpf", "reference_range": "0-5", "flag": "High" },
+    "urineProtein": { "value": "2+", "unit": "", "reference_range": "Negative", "flag": "High" },
     "creatinine": { "value": 1.4, "unit": "mg/dL", "reference_range": "0.7-1.2", "flag": "High" },
-    "pcratio": { "value": 2.6, "unit": "mg/mg", "reference_range": "0-0.3", "flag": "High" },
-    "urineRbc": { "value": 8, "unit": "/hpf", "reference_range": "0-5", "flag": "High" },
-    "cholesterol": { "value": 180, "unit": "mg/dL", "reference_range": "0-200", "flag": "Normal" }
+    "pcratio": { "value": 2.6, "unit": "mg/mg", "reference_range": "0-0.3", "flag": "High" }
   }
 }
-If the date is not found, use today's date (${new Date().toISOString().split('T')[0]}). If a value is not found, omit it. Do not include markdown formatting, just raw JSON.`;
+If the date is not found, use today's date (${new Date().toISOString().split('T')[0]}). If a value is a range (like "10-15" or "2-4"), keep the exact range string in "value". Do not include markdown formatting, just raw JSON.`;
 
     const aiResult = await generateWithGemini([
       { role: 'user', parts: [{ inlineData: { data: base64Data, mimeType } }, { text: prompt }] }
