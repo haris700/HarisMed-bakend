@@ -226,6 +226,7 @@ app.post('/api/extract', async (req, res) => {
 CRITICAL BIOMARKER MAPPING RULES:
 - 'pcratio': "URINE PROTEIN CREATININE RATIO" (e.g. 2.44 mg/mg, reference "0-0.3", flag "High").
 - 'urineProtein': Quantitative "URINE PROTEIN CONCENTRATION" in mg/dL (e.g. 230 mg/dL, reference "<12", flag "High"). Do NOT use dipstick grades here if quantitative mg/dL concentration is available.
+- 'urineDipstickProtein': Qualitative / Dipstick Urine Protein under Chemical Examination (e.g. "2+", "1+", "Trace", "Negative").
 - 'urineCreatinine': "URINE CREATININE" in mg/dL (e.g. 94.2 mg/dL).
 - 'creatinine': Serum Creatinine in mg/dL (e.g. 1.1 or 1.4 mg/dL).
 - 'egfr': Estimated Glomerular Filtration Rate (e.g. 72 mL/min).
@@ -233,21 +234,32 @@ CRITICAL BIOMARKER MAPPING RULES:
 - 'potassium': Serum Potassium in mEq/L (e.g. 4.4 mEq/L).
 - 'uricAcid': Serum Uric Acid in mg/dL (e.g. 6.51 mg/dL).
 - 'urineRbc': RBC / Red Blood Cells in Urine Microscopic Examination (e.g. "10-15", "0-2", "8-10" /hpf, reference "0-5", flag "High").
+- 'totalProtein': Serum TOTAL PROTEIN in g/dL (e.g. 4.67 g/dL, reference "6.4-8.3", flag "Low").
+- 'albumin': Serum ALBUMIN in g/dL (e.g. 3.40 g/dL, reference "3.97-4.94", flag "Low").
+- 'globulin': Serum GLOBULIN in g/dL (e.g. 1.27 g/dL, reference "2.3-3.5", flag "Low").
+- 'agRatio': A/G RATIO / Albumin to Globulin Ratio (e.g. 2.68, reference "1-2", flag "High").
 - 'cholesterol': Total Cholesterol in mg/dL (e.g. 233 or 180 mg/dL).
-- 'urineDipstickProtein': Qualitative / Dipstick Urine Protein under Chemical Examination (e.g. "2+", "1+", "Trace", "Negative").
+- 'calcium': Serum Calcium in mg/dL (e.g. 8.69 mg/dL).
+- 'phosphorus': Serum Phosphorus in mg/dL (e.g. 4.73 mg/dL).
+- 'sodium': Serum Sodium in mmol/L or mEq/L (e.g. 140 mmol/L).
 
 Format the JSON exactly like this:
 {
   "date": "YYYY-MM-DD",
-  "test_types": ["Protein - Creatinine Ratio, Urine", "Urine Routine Examination", "Kidney Function Test"],
+  "test_types": ["Kidney Function Test", "Protein - Creatinine Ratio, Urine", "Urine Routine Examination"],
   "markers": {
     "pcratio": { "value": 2.44, "unit": "mg/mg", "reference_range": "0-0.3", "flag": "High" },
     "urineProtein": { "value": 230, "unit": "mg/dl", "reference_range": "<12", "flag": "High" },
+    "urineDipstickProtein": { "value": "2+", "unit": "Grade", "reference_range": "Negative", "flag": "High" },
     "urineRbc": { "value": "10-15", "unit": "/hpf", "reference_range": "0-5", "flag": "High" },
     "creatinine": { "value": 1.1, "unit": "mg/dL", "reference_range": "0.7-1.2", "flag": "Normal" },
     "bun": { "value": 43, "unit": "mg/dL", "reference_range": "7-20", "flag": "High" },
     "potassium": { "value": 4.4, "unit": "mEq/L", "reference_range": "3.5-5.0", "flag": "Normal" },
     "uricAcid": { "value": 6.51, "unit": "mg/dL", "reference_range": "3.5-7.2", "flag": "Normal" },
+    "totalProtein": { "value": 4.67, "unit": "g/dL", "reference_range": "6.4-8.3", "flag": "Low" },
+    "albumin": { "value": 3.40, "unit": "g/dL", "reference_range": "3.97-4.94", "flag": "Low" },
+    "globulin": { "value": 1.27, "unit": "g/dL", "reference_range": "2.3-3.5", "flag": "Low" },
+    "agRatio": { "value": 2.68, "unit": "", "reference_range": "1.0-2.0", "flag": "High" },
     "cholesterol": { "value": 233, "unit": "mg/dL", "reference_range": "0-200", "flag": "High" }
   }
 }
@@ -291,6 +303,18 @@ If the date is not found, use today's date (${new Date().toISOString().split('T'
       if (['urinedipstickprotein', 'dipstickprotein', 'chemicalprotein', 'proteins', 'protein', 'urinealbumin', 'albuminurine'].includes(clean)) {
         return 'urineDipstickProtein';
       }
+      if (['totalprotein', 'serumtotalprotein', 'totprotein', 'tprotein', 'proteinserum', 'totalproteins'].includes(clean)) {
+        return 'totalProtein';
+      }
+      if (['albumin', 'serumalbumin', 'salbumin', 'albumina', 'alb'].includes(clean)) {
+        return 'albumin';
+      }
+      if (['globulin', 'serumglobulin', 'sglobulin', 'glob'].includes(clean)) {
+        return 'globulin';
+      }
+      if (['agratio', 'ag', 'albuminglobulinratio', 'albumintoglobulinratio', 'aandgratio', 'agratiocalculated', 'agcalculated'].includes(clean)) {
+        return 'agRatio';
+      }
       if (['potassium', 'serumpotassium', 'k', 'spotassium'].includes(clean)) {
         return 'potassium';
       }
@@ -299,6 +323,18 @@ If the date is not found, use today's date (${new Date().toISOString().split('T'
       }
       if (['cholesterol', 'totalcholesterol', 'lipidcholesterol', 'scholesterol', 'tchol'].includes(clean)) {
         return 'cholesterol';
+      }
+      if (['calcium', 'serumcalcium', 'scalcium', 'ca'].includes(clean)) {
+        return 'calcium';
+      }
+      if (['phosphorus', 'serumphosphorus', 'phosphate', 'sphosphorus', 'po4'].includes(clean)) {
+        return 'phosphorus';
+      }
+      if (['sodium', 'serumsodium', 'na', 'ssodium'].includes(clean)) {
+        return 'sodium';
+      }
+      if (['chloride', 'serumchloride', 'cl', 'schloride'].includes(clean)) {
+        return 'chloride';
       }
       return k;
     };

@@ -23,8 +23,10 @@ const RANGES = {
   potassium:            { low: 3.5,  high: 5.0,   unit: 'mEq/L', label: 'Potassium' },
   sodium:       { low: 137,  high: 145,   unit: 'mmol/L',label: 'Sodium' },
   uricAcid:     { low: 3.5,  high: 7.2,   unit: 'mg/dL', label: 'Uric Acid' },
+  totalProtein: { low: 6.4,  high: 8.3,   unit: 'g/dL',  label: 'Total Protein' },
   albumin:      { low: 3.5,  high: 5.0,   unit: 'g/dL',  label: 'Albumin' },
-  totalProtein: { low: 6.3,  high: 8.2,   unit: 'g/dL',  label: 'Total Protein' },
+  globulin:     { low: 2.3,  high: 3.5,   unit: 'g/dL',  label: 'Globulin' },
+  agRatio:      { low: 1.0,  high: 2.0,   unit: '',      label: 'A/G Ratio' },
   calcium:      { low: 8.4,  high: 10.2,  unit: 'mg/dL', label: 'Calcium' },
   glucose:      { low: 70,   high: 140,   unit: 'mg/dL', label: 'Glucose' },
   urineRbc:     { low: 0,    high: 5,     unit: '/hpf',  label: 'Urine RBC' },
@@ -104,6 +106,10 @@ const TREND_MARKERS = [
   { key:'egfr',                 color:'#a78bfa' },  // eGFR
   { key:'urineProtein',         color:'#fb923c' },  // Urine Protein (Conc)
   { key:'urineDipstickProtein', color:'#ec4899' },  // Urine Protein (Routine)
+  { key:'albumin',              color:'#06b6d4' },  // Serum Albumin
+  { key:'totalProtein',         color:'#3b82f6' },  // Total Protein
+  { key:'globulin',             color:'#8b5cf6' },  // Globulin
+  { key:'agRatio',              color:'#14b8a6' },  // A/G Ratio
   { key:'bun',                  color:'#60a5fa' },
   { key:'potassium',            color:'#34d399' },
   { key:'uricAcid',             color:'#f59e0b' },
